@@ -5,7 +5,7 @@ import { allHandTiles, isKanMeld, seatWindOf, type WinInput } from './hand';
 import { findWinningPatterns, type WinningPattern } from './hand-decomposition';
 import { validateWinInput } from './hand-validation';
 import { countDora, type DoraItem } from './dora';
-import { computeWinPayments, sumPayments, type PaymentResult } from './payment';
+import { computeWinPayments, ronAmount, sumPayments, tsumoAmounts, type PaymentResult } from './payment';
 import { basePointsFor, yakumanBasePoints, type LimitType, YAKUMAN_BASE } from './score';
 import { countKinds, isDragon, isWind } from './tile';
 import { judgeYaku, judgeYakuman, yakumanPaoRule, type YakuContext, type YakuResult, type YakumanResult } from './yaku';
@@ -78,11 +78,12 @@ function emptyResult(rules: RuleProfile, errors: RuleError[], warnings: RuleWarn
   };
 }
 
-function handTotalFor(base: number, isDealer: boolean, method: 'ron' | 'tsumo'): number {
-  const ceil = (x: number) => Math.ceil(x / 100) * 100;
-  if (method === 'ron') return ceil(base * (isDealer ? 6 : 4));
-  if (isDealer) return ceil(base * 2) * 3;
-  return ceil(base * 2) + ceil(base) * 2;
+/** アガリ者が基本点で受け取る合計（候補の比較用。支払い計算と同じ関数で求める） */
+function handTotalFor(base: number, input: WinInput, rules: RuleProfile): number {
+  if (input.method === 'ron') return ronAmount(base, input.winner === input.dealer);
+  let total = 0;
+  for (const amount of tsumoAmounts(base, input.winner, input.dealer, rules).values()) total += amount;
+  return total;
 }
 
 export function calculateHandScore(input: WinInput, rules: RuleProfile): ScoringResult {
@@ -95,21 +96,21 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
     return emptyResult(rules, [
       userError(
         'INVALID_HAND_STRUCTURE',
-        'アガリ形になっていません。手牌・副露・アガリ牌を確認してください（4面子1雀頭・七対子・国士無双のいずれか）',
+        'アガリ形になっていません。手牌・副露・アガリ牌を確認してください（4面子1雀頭・七対子・国士無双のいずれか）。',
         'concealed',
       ),
     ]);
   }
 
   const menzen = input.melds.every((m) => m.type === 'ankan');
-  const seatWind = seatWindOf(input.winner, input.dealer);
+  const seatWind = seatWindOf(input.winner, input.dealer, rules.game.playerCount);
   const isDealer = input.winner === input.dealer;
   const riichi = input.flags.riichi || input.flags.doubleRiichi;
   const handTiles = allHandTiles(input);
   const allCounts = countKinds(handTiles);
   const concealedCounts = countKinds(input.concealed);
   const kanCount = input.melds.filter(isKanMeld).length;
-  const dora = countDora(handTiles, input.dora, rules, riichi);
+  const dora = countDora(handTiles, input.dora, rules, riichi, input.nukiCount ?? 0);
   const doraHanTotal = dora.reduce((a, d) => a + d.count, 0);
 
   const scored: PatternScore[] = [];
@@ -151,7 +152,7 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
         limit,
         basePoints: base,
         paoUnits,
-        handTotal: handTotalFor(base, isDealer, input.method),
+        handTotal: handTotalFor(base, input, rules),
       });
       continue;
     }
@@ -169,7 +170,7 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
         limit,
         basePoints: base,
         paoUnits: 0,
-        handTotal: handTotalFor(base, isDealer, input.method),
+        handTotal: handTotalFor(base, input, rules),
       });
     }
 
@@ -184,7 +185,7 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
         limit: 'mangan',
         basePoints: 2000,
         paoUnits: 0,
-        handTotal: handTotalFor(2000, isDealer, input.method),
+        handTotal: handTotalFor(2000, input, rules),
       });
     }
   }
@@ -192,11 +193,11 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
   if (scored.length === 0) {
     if (input.flags.chankanOnConcealedKan) {
       return emptyResult(rules, [
-        userError('INVALID_WIN_CONTEXT', '暗槓に対する槍槓は国士無双のときだけ認められます', 'chankan'),
+        userError('INVALID_WIN_CONTEXT', '暗槓に対する槍槓は国士無双のときだけ認められます。', 'chankan'),
       ]);
     }
     return emptyResult(rules, [
-      userError('NO_YAKU', '役がありません。ドラだけではアガれません（リーチ・ツモなどの条件も確認してください）'),
+      userError('NO_YAKU', '役がありません。ドラだけではアガれません（リーチ・ツモなどの条件も確認してください）。'),
     ]);
   }
 
@@ -218,7 +219,7 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
   if (input.method === 'ron' && input.furiten === 'unknown') {
     warnings.push({
       code: 'FURITEN_UNCONFIRMED',
-      message: 'フリテン判定は未確認です。アガった人の捨て牌にアガリ牌が無いこと（見逃しが無いこと）を確認してください',
+      message: 'フリテン判定は未確認です。アガった人の捨て牌にアガリ牌が無いこと（見逃しが無いこと）を確認してください。',
     });
   }
 
@@ -238,7 +239,7 @@ export function calculateHandScore(input: WinInput, rules: RuleProfile): Scoring
   const handPaid = sumPayments(payments);
   if (handPaid !== best.handTotal) {
     return emptyResult(rules, [
-      internalError('POINT_CONSERVATION_FAILED', `支払い合計(${handPaid})と受取額(${best.handTotal})が一致しません`),
+      internalError('POINT_CONSERVATION_FAILED', `支払い合計（${handPaid}）と受取額（${best.handTotal}）が一致しません。`),
     ]);
   }
   const depositAmount = depositTransfer?.amount ?? 0;
@@ -271,7 +272,7 @@ function validatePao(input: WinInput, best: PatternScore): RuleError | null {
   if (best.paoUnits === 0) {
     return userError(
       'INVALID_RESPONSIBILITY_PAYMENT',
-      '包（責任払い）は、現在のルールで対象となる役満（大三元・大四喜など）が成立したときだけ設定できます',
+      '包（責任払い）は、現在のルールで対象となる役満（大三元・大四喜など）が成立したときだけ設定できます。',
       'pao',
     );
   }
@@ -288,7 +289,7 @@ function validatePao(input: WinInput, best: PatternScore): RuleError | null {
   if (relevant.length === 0) {
     return userError(
       'INVALID_RESPONSIBILITY_PAYMENT',
-      '包の責任者は、役満の確定に必要な牌（三元牌・風牌など）を鳴かせた人を選んでください',
+      '包の責任者は、役満の確定に必要な牌（三元牌・風牌など）を鳴かせた人を選んでください。',
       'pao',
     );
   }

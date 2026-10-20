@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { SignedInput } from '../../components/common/SignedInput';
 import { Check, Seg } from '../../components/common/Dialog';
-import { DEFAULT_RULES, validateRuleProfile, type RuleProfile } from '../../domain/rules';
+import { defaultRulesFor, validateRuleProfile, type PlayerCount, type RuleProfile } from '../../domain/rules';
+import { playerCountLabel } from '../../ui/format';
 import { useStore } from '../../store/game-store';
 
 function Row({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
@@ -52,25 +53,46 @@ function SignedNumber({ value, onChange, label }: { value: number; onChange: (v:
 /** ルール設定。保存前に矛盾を検証し、変更は新しい対局から適用する（進行中の対局は開始時のルールのまま）。 */
 export function SettingsScreen() {
   const { state, game, dispatch } = useStore();
-  const [r, setR] = useState<RuleProfile>(() => structuredClone(state.defaultRules));
+  const [count, setCount] = useState<PlayerCount>(game?.rules.game.playerCount ?? 4);
+  const [drafts, setDrafts] = useState<Record<PlayerCount, RuleProfile>>(() => structuredClone(state.defaultRules));
   const [saved, setSaved] = useState(false);
+  const r = drafts[count];
+  const n = count;
   const set = (fn: (x: RuleProfile) => void) => {
-    setR((prev) => {
-      const next = structuredClone(prev);
+    setDrafts((prev) => {
+      const next = structuredClone(prev[count]);
       fn(next);
-      return next;
+      return { ...prev, [count]: next };
     });
     setSaved(false);
   };
   const check = validateRuleProfile(r);
   const issues = check.ok ? [] : check.issues;
+  const chomboText =
+    n === 3 && r.sanma.tsumoPayment === 'split'
+      ? '満貫払い（親は各6,000点、子は親へ5,000点・子へ3,000点）'
+      : n === 3
+        ? '満貫払い（親は各4,000点、子は親へ4,000点・子へ2,000点）'
+        : '満貫払い（親は4,000点オール、子は親へ4,000点・子へ2,000点）';
 
   return (
     <div className="screen settings">
       <h2 className="screen-title">ルール設定</h2>
+      <Seg
+        value={count}
+        onChange={(v) => {
+          setCount(v);
+          setSaved(false);
+        }}
+        label="人数"
+        options={[
+          { value: 4, label: playerCountLabel(4) },
+          { value: 3, label: playerCountLabel(3) },
+        ]}
+      />
       <p className="note">
-        ここでの変更は<b>次に始める対局</b>から適用されます。
-        {game && `進行中の対局は開始時のルール（${game.rules.name} v${game.rules.version}）で計算されます。`}
+        ここでの変更は、<b>次に始める{playerCountLabel(n)}の対局</b>から適用されます。
+        {game && `進行中の対局は、開始時のルール（${game.rules.name} v${game.rules.version}）で計算されます。`}
       </p>
 
       <h3>対局</h3>
@@ -125,7 +147,7 @@ export function SettingsScreen() {
 
       <h3>ドラ</h3>
       <Row label="赤ドラ（枚数）">
-        {(['man', 'pin', 'sou'] as const).map((s) => (
+        {(['man', 'pin', 'sou'] as const).filter((s) => n === 4 || s !== 'man').map((s) => (
           <label key={s} className="inline-field">
             {s === 'man' ? '五萬' : s === 'pin' ? '五筒' : '五索'}
             <NumberInput step={1} value={r.dora.aka[s]} onChange={(v) => set((x) => (x.dora.aka[s] = v))} />
@@ -140,7 +162,16 @@ export function SettingsScreen() {
 
       <h3>アガリ・流局</h3>
       <Row label="複数人のロン">
-        <Seg small value={r.wins.multipleRon} onChange={(v) => set((x) => (x.wins.multipleRon = v))} options={[{ value: 'headBump', label: '頭ハネ' }, { value: 'doubleRon', label: 'ダブロンまで' }, { value: 'tripleRon', label: 'トリロン可' }]} />
+        <Seg
+          small
+          value={r.wins.multipleRon}
+          onChange={(v) => set((x) => (x.wins.multipleRon = v))}
+          options={[
+            { value: 'headBump', label: '頭ハネ' },
+            { value: 'doubleRon', label: 'ダブロンあり' },
+            ...(n === 4 ? [{ value: 'tripleRon' as const, label: 'トリロンあり' }] : []),
+          ]}
+        />
       </Row>
       <Row label="ダブロンの本場">
         <Seg small value={r.wins.multipleRonHonba} onChange={(v) => set((x) => (x.wins.multipleRonHonba = v))} options={[{ value: 'nearest', label: '上家取り' }, { value: 'each', label: '両者に付く' }]} />
@@ -150,10 +181,19 @@ export function SettingsScreen() {
       </Row>
       <Row label="途中流局">
         <Check label="九種九牌" checked={r.draws.nineTerminals} onChange={(v) => set((x) => (x.draws.nineTerminals = v))} />
-        <Check label="四風子連打" checked={r.draws.fourWinds} onChange={(v) => set((x) => (x.draws.fourWinds = v))} />
-        <Check label="四家立直" checked={r.draws.fourRiichi} onChange={(v) => set((x) => (x.draws.fourRiichi = v))} />
+        {n === 4 ? (
+          <>
+            <Check label="四風子連打" checked={r.draws.fourWinds} onChange={(v) => set((x) => (x.draws.fourWinds = v))} />
+            <Check label="四家立直" checked={r.draws.fourRiichi} onChange={(v) => set((x) => (x.draws.fourRiichi = v))} />
+          </>
+        ) : (
+          <>
+            <Check label="三風子連打" checked={r.draws.threeWinds} onChange={(v) => set((x) => (x.draws.threeWinds = v))} />
+            <Check label="三家立直" checked={r.draws.threeRiichi} onChange={(v) => set((x) => (x.draws.threeRiichi = v))} />
+          </>
+        )}
         <Check label="四槓散了" checked={r.draws.fourKans} onChange={(v) => set((x) => (x.draws.fourKans = v))} />
-        <Check label="三家和" checked={r.draws.threeRon} onChange={(v) => set((x) => (x.draws.threeRon = v))} />
+        {n === 4 && <Check label="三家和" checked={r.draws.threeRon} onChange={(v) => set((x) => (x.draws.threeRon = v))} />}
       </Row>
       <Row label="流し満貫">
         <Check label="採用" checked={r.draws.nagashiMangan} onChange={(v) => set((x) => (x.draws.nagashiMangan = v))} />
@@ -167,24 +207,50 @@ export function SettingsScreen() {
         <Check label="四槓子" checked={r.pao.suukantsu} onChange={(v) => set((x) => (x.pao.suukantsu = v))} />
       </Row>
 
+      {n === 3 && (
+        <>
+          <h3>3人打ち</h3>
+          <Row label="ツモの支払い">
+            <Seg
+              small
+              value={r.sanma.tsumoPayment}
+              onChange={(v) => set((x) => (x.sanma.tsumoPayment = v))}
+              options={[
+                { value: 'split', label: '北家分を折半' },
+                { value: 'loss', label: 'ツモ損あり' },
+              ]}
+            />
+          </Row>
+          <Row label="北抜き" hint="抜いた北は1枚1翻">
+            <Check label="採用" checked={r.sanma.nukiDora} onChange={(v) => set((x) => (x.sanma.nukiDora = v))} />
+          </Row>
+          <Row label="手牌の北">
+            <Check label="役牌にする" checked={r.sanma.northYakuhai} onChange={(v) => set((x) => (x.sanma.northYakuhai = v))} />
+          </Row>
+          <Row label="チー">
+            <Check label="認める" checked={r.sanma.allowChi} onChange={(v) => set((x) => (x.sanma.allowChi = v))} />
+          </Row>
+        </>
+      )}
+
       <h3>精算</h3>
       <Row label="本場" hint="ロン／ツモ1人あたり">
         <NumberInput value={r.settlement.honbaRon} onChange={(v) => set((x) => (x.settlement.honbaRon = v))} />
         <NumberInput value={r.settlement.honbaTsumoEach} onChange={(v) => set((x) => (x.settlement.honbaTsumoEach = v))} />
       </Row>
-      <Row label="ウマ（1〜4位）">
+      <Row label={`ウマ（1〜${n}位）`}>
         {r.settlement.uma.map((u, i) => (
           <SignedNumber key={i} label={`${i + 1}位のウマ`} value={u} onChange={(v) => set((x) => (x.settlement.uma[i] = v))} />
         ))}
       </Row>
-      <Row label="オカ" hint="(返し点−開始点)×4をトップへ">
+      <Row label="オカ" hint={`（返し点−開始点）×${n}をトップへ`}>
         <Check label="採用" checked={r.settlement.okaEnabled} onChange={(v) => set((x) => (x.settlement.okaEnabled = v))} />
       </Row>
       <Row label="同点の順位">
         <Seg small value={r.settlement.tieBreak} onChange={(v) => set((x) => (x.settlement.tieBreak = v))} options={[{ value: 'seatOrder', label: '起家に近い方が上' }, { value: 'split', label: '順位点を等分' }]} />
       </Row>
       <Row label="チョンボ">
-        <span>満貫払い（親4000オール／子は親4000・子2000）</span>
+        <span>{chomboText}</span>
       </Row>
 
       {issues.length > 0 && (
@@ -197,7 +263,14 @@ export function SettingsScreen() {
         </ul>
       )}
       <div className="button-row sticky-actions">
-        <button type="button" className="btn" onClick={() => { setR(structuredClone(DEFAULT_RULES)); setSaved(false); }}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setDrafts((prev) => ({ ...prev, [count]: structuredClone(defaultRulesFor(count)) }));
+            setSaved(false);
+          }}
+        >
           標準に戻す
         </button>
         <button
@@ -206,15 +279,22 @@ export function SettingsScreen() {
           disabled={!check.ok}
           onClick={() => {
             if (!check.ok) return;
-            const changed = JSON.stringify(check.rules) !== JSON.stringify(DEFAULT_RULES);
-            const rules: RuleProfile = changed
-              ? { ...check.rules, id: 'custom', name: 'カスタムルール', version: `${DEFAULT_RULES.version}+${Date.now().toString(36)}` }
-              : check.rules;
+            const base = defaultRulesFor(count);
+            const content = (x: RuleProfile) => JSON.stringify({ ...x, id: '', name: '', version: '' });
+            const rules: RuleProfile =
+              content(check.rules) === content(base)
+                ? base
+                : {
+                    ...check.rules,
+                    id: count === 3 ? 'custom-sanma' : 'custom',
+                    name: `${playerCountLabel(count)}カスタムルール`,
+                    version: `${base.version}+${Date.now().toString(36)}`,
+                  };
             dispatch({ type: 'setDefaultRules', rules });
             setSaved(true);
           }}
         >
-          保存
+          保存する
         </button>
         {saved && <span className="ok-text">保存しました</span>}
       </div>

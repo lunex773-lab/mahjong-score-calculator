@@ -1,5 +1,5 @@
-import type { Meld, Seat } from '../domain/mahjong/hand';
-import type { Tile } from '../domain/mahjong/tile';
+import { seatsOf, type Meld, type Seat } from '../domain/mahjong/hand';
+import { NORTH, type Tile } from '../domain/mahjong/tile';
 import type { GameEvent } from '../domain/round/game';
 import type { RuleProfile } from '../domain/rules';
 
@@ -24,6 +24,8 @@ export interface SeatDraft {
   winningTile: Tile | null;
   riichi: RiichiState;
   ippatsu: boolean;
+  /** 3人打ちで抜いた北の枚数 */
+  nuki: number;
 }
 
 export interface HandDraft {
@@ -31,7 +33,8 @@ export interface HandDraft {
   dora: Record<DoraTarget, Tile[]>;
 }
 
-export type Players = [string, string, string, string];
+/** プレイヤー名（座席順。3人打ちは3人分） */
+export type Players = string[];
 
 export interface SavedGame {
   schemaVersion: 1;
@@ -45,15 +48,15 @@ export interface SavedGame {
   draft: HandDraft;
 }
 
-export const emptySeat = (): SeatDraft => ({ concealed: [], melds: [], winningTile: null, riichi: 'none', ippatsu: false });
+export const emptySeat = (): SeatDraft => ({ concealed: [], melds: [], winningTile: null, riichi: 'none', ippatsu: false, nuki: 0 });
 
 export const emptyDraft = (): HandDraft => ({
   seats: [emptySeat(), emptySeat(), emptySeat(), emptySeat()],
   dora: { dora: [], kanDora: [], ura: [], kanUra: [] },
 });
 
-export const riichiSeats = (draft: HandDraft): Seat[] =>
-  ([0, 1, 2, 3] as Seat[]).filter((s) => draft.seats[s].riichi !== 'none');
+export const riichiSeats = (draft: HandDraft, playerCount: 3 | 4): Seat[] =>
+  seatsOf(playerCount).filter((s) => draft.seats[s].riichi !== 'none');
 
 /** 卓全体で使用中の牌（物理枚数の上限チェック用） */
 export function tilesInUse(draft: HandDraft): Tile[] {
@@ -61,6 +64,7 @@ export function tilesInUse(draft: HandDraft): Tile[] {
   for (const seat of draft.seats) {
     out.push(...seat.concealed, ...seat.melds.flatMap((m) => m.tiles));
     if (seat.winningTile) out.push(seat.winningTile);
+    for (let i = 0; i < seat.nuki; i++) out.push({ kind: NORTH, red: false });
   }
   out.push(...draft.dora.dora, ...draft.dora.kanDora, ...draft.dora.ura, ...draft.dora.kanUra);
   return out;

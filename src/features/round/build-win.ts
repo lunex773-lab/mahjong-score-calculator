@@ -50,11 +50,11 @@ export function buildRecordedWins(draft: HandDraft, settings: WinSettings): { wi
     const sd = draft.seats[seat];
     const opt = settings.perWinner[seat] ?? defaultWinnerOptions();
     if (!sd.winningTile) {
-      issues.push({ seat, message: 'アガリ牌を入力してください' });
+      issues.push({ seat, message: 'アガリ牌を入力してください。' });
       continue;
     }
     if (settings.method === 'ron' && settings.discarder === null) {
-      issues.push({ seat, message: '放銃者（誰の捨て牌でアガったか）を選んでください' });
+      issues.push({ seat, message: '放銃者（誰の捨て牌でアガったか）を選んでください。' });
       continue;
     }
     const flags: WinFlags = {
@@ -83,6 +83,7 @@ export function buildRecordedWins(draft: HandDraft, settings: WinSettings): { wi
       // 裏ドラはリーチした人だけが見る（ダブロンで片方だけリーチの場合もある）
       dora: flags.riichi || flags.doubleRiichi ? draft.dora : { ...draft.dora, ura: [], kanUra: [] },
       ...(opt.pao !== null ? { paoSeat: opt.pao } : {}),
+      ...(sd.nuki > 0 ? { nukiCount: sd.nuki } : {}),
     });
   }
   return { wins, issues };

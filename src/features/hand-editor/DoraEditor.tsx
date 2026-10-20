@@ -41,7 +41,7 @@ export function DoraEditor({
                   onRemove(t, i);
                 }}
                 aria-label={`${tileLabel(tile)}を外す`}
-                title={`ドラ: ${tileLabel(doraFromIndicator(tile.kind))}`}
+                title={`ドラ：${tileLabel(doraFromIndicator(tile.kind))}`}
               >
                 <TileView tile={tile} size="sm" />
                 <small className="dora-arrow">→{tileLabel(doraFromIndicator(tile.kind))}</small>

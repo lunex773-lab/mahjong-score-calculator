@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Poin
 import { MELD_LABELS, type Seat } from '../../domain/mahjong/hand';
 import { tileLabel } from '../../domain/mahjong/tile';
 import type { HandDraft } from '../../store/types';
+import { fmtNumber } from '../../ui/format';
 import { TileView } from '../tiles/Tile';
 
 /**
@@ -31,6 +32,7 @@ export interface SeatInfo {
 }
 
 interface Props {
+  /** 座席順の情報。3人打ちは3人分（北席は空席として表示し、止まらない） */
   seats: SeatInfo[];
   selected: Seat;
   onSelect: (s: Seat) => void;
@@ -57,8 +59,15 @@ interface DragState {
   active: boolean;
 }
 
+/** 空席では止まらないよう、回した向きにある次の席の角度へずらす */
+export function snapToAvailable(target: number, direction: number, seatCount: number): number {
+  let angle = target;
+  for (let i = 0; i < 4 && seatOfAngle(angle) >= seatCount; i++) angle += direction >= 0 ? 90 : -90;
+  return angle;
+}
+
 /** 卓の角度。ドラッグ中は指に追従させ、離したら最寄りの席までアニメーションさせる */
-function useTurntable(selected: Seat, onSelect: (s: Seat) => void) {
+function useTurntable(selected: Seat, onSelect: (s: Seat) => void, seatCount: number) {
   const [angle, setAngle] = useState(selected * 90);
   const angleRef = useRef(angle);
   const frame = useRef<number | null>(null);
@@ -136,7 +145,8 @@ function useTurntable(selected: Seat, onSelect: (s: Seat) => void) {
       // はじいた速度も考慮して止まる席を決める（惰性は最大1席分）。指を止めてから離した場合ははじきとみなさない
       const v = e.timeStamp - d.lastT > 80 ? 0 : d.v;
       const fling = Math.abs(v) > 0.35 ? -Math.sign(v) * 0.6 : 0;
-      const target = Math.round(angleRef.current / 90 + fling) * 90;
+      const turned = angleRef.current - d.start;
+      const target = snapToAvailable(Math.round(angleRef.current / 90 + fling) * 90, turned, seatCount);
       animateTo(target);
       const seat = seatOfAngle(target);
       if (seat !== selected) onSelect(seat);
@@ -165,9 +175,9 @@ function PlateContent({ info, overview, sd }: { info: SeatInfo; overview: boolea
         <span className={`wind-badge${info.isDealer ? ' is-dealer' : ''}`}>{WIND_TEXT[info.wind]}</span>
         <span className="seat-name">{info.name}</span>
         {info.isDealer && <span className="dealer-mark">親</span>}
-        {overview && <span className="seat-points">{info.points.toLocaleString()}</span>}
+        {overview && <span className="seat-points">{fmtNumber(info.points)}</span>}
       </span>
-      {!overview && <span className="seat-points">{info.points.toLocaleString()}</span>}
+      {!overview && <span className="seat-points">{fmtNumber(info.points)}</span>}
       {info.riichi && <span className="riichi-stick" title="リーチ" />}
       {overview && sd && (
         <span className="overview-hand">
@@ -206,7 +216,7 @@ function PlateContent({ info, overview, sd }: { info: SeatInfo; overview: boolea
 }
 
 export function MahjongTable({ seats, selected, onSelect, center, draft, view = '3d' }: Props) {
-  const { angle, handlers } = useTurntable(selected, onSelect);
+  const { angle, handlers } = useTurntable(selected, onSelect, seats.length);
   const is3d = view === '3d';
   // 3D では札を「卓の回転と辺の向きを打ち消し → 起こす」ことで常に正面を向かせる
   const billboard = (layer: number): CSSProperties | undefined =>
@@ -220,7 +230,17 @@ export function MahjongTable({ seats, selected, onSelect, center, draft, view = 
           {is3d && <div className="table-skirt" aria-hidden="true" />}
           <div className="table-felt" />
           {([0, 1, 2, 3] as Seat[]).map((seat) => {
-            const info = seats[seat]!;
+            const info = seats[seat];
+            if (!info) {
+              // 3人打ちの北席（誰も座らない）
+              return (
+                <div key={seat} className={`seat-layer ${POSITION_CLASS[seat]}`}>
+                  <div className="seat-plate is-empty" style={billboard(LAYER_ANGLE[seat]!)} aria-hidden="true">
+                    <span className="seat-line">空席（北）</span>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={seat} className={`seat-layer ${POSITION_CLASS[seat]}`}>
                 <button

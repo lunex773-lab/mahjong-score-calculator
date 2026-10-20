@@ -1,5 +1,5 @@
 import type { Meld } from './hand';
-import { countKinds, KIND_COUNT, rankOf, YAOCHU_KINDS, type Tile, type TileKind } from './tile';
+import { countKinds, isUsableKind, KIND_COUNT, rankOf, YAOCHU_KINDS, type Tile, type TileKind } from './tile';
 
 /**
  * アガリ形の判定と全分解候補の生成（仕様書 第3章）。
@@ -200,12 +200,13 @@ export function findWinningPatterns(input: DecompositionInput): WinningPattern[]
 }
 
 /** 手牌（13枚相当）の待ち牌を求める。形式テンパイの判定に使う。 */
-export function findWaits(concealed: readonly Tile[], melds: readonly Meld[]): TileKind[] {
+export function findWaits(concealed: readonly Tile[], melds: readonly Meld[], playerCount: 3 | 4 = 4): TileKind[] {
   const waits: TileKind[] = [];
   if (concealed.length + melds.length * 3 !== 13) return waits;
   const ownCounts = countKinds([...concealed, ...melds.flatMap((m) => m.tiles)]);
   for (let k = 0; k < KIND_COUNT; k++) {
     if ((ownCounts[k] ?? 0) >= 4) continue; // 自分で4枚使っている牌は待ちにならない
+    if (!isUsableKind(k, playerCount)) continue; // 3人打ちに無い牌（二萬〜八萬）は待ちにならない
     const patterns = findWinningPatterns({
       concealed,
       melds,

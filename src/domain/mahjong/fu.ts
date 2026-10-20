@@ -1,7 +1,8 @@
 import type { RuleProfile } from '../rules';
 import type { WinMethod } from './hand';
 import type { WinningPattern } from './hand-decomposition';
-import { isDragon, isYaochu, tileLabel, type TileKind } from './tile';
+import { isDragon, isYaochu, NORTH, tileLabel, type TileKind } from './tile';
+import { northIsYakuhai } from './yaku';
 
 /**
  * 符計算（仕様書 第7章）。役判定とは独立したモジュールとし、内訳を保持する。
@@ -85,6 +86,7 @@ export function calculateFu(ctx: FuContext): FuResult {
 
 function pairFuOf(pair: TileKind, ctx: FuContext): number {
   if (isDragon(pair)) return 2;
+  if (pair === NORTH && northIsYakuhai(ctx.rules)) return 2;
   const seat = pair === ctx.seatWind;
   const round = pair === ctx.roundWind;
   if (seat && round) return ctx.rules.yaku.doubleWindPairFu;

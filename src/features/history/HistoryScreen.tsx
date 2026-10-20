@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '../../components/common/Dialog';
 import { SignedInput } from '../../components/common/SignedInput';
+import { fmtNumber, fmtPoints, playerCountLabel } from '../../ui/format';
 import { roundLabel } from '../../domain/round/game';
 import { useStore } from '../../store/game-store';
 import { ScoreBreakdown } from '../scoring/ScoreBreakdown';
@@ -36,7 +37,7 @@ export function HistoryScreen({ onNewGame }: { onNewGame: () => void }) {
             <button type="button" className="history-item" onClick={() => setDetail(i)}>
               <span className="history-label">{l.label}</span>
               <span className="history-summary">{l.summary}</span>
-              <span className="history-points">{l.pointsAfter.map((p) => p.toLocaleString()).join(' / ')}</span>
+              <span className="history-points">{l.pointsAfter.map((p) => fmtNumber(p)).join('／')}</span>
             </button>
           </li>
         ))}
@@ -64,7 +65,7 @@ export function HistoryScreen({ onNewGame }: { onNewGame: () => void }) {
             <div>
               <strong>{g.players.join('・')}</strong>
               <small>
-                {new Date(g.createdAt).toLocaleString('ja-JP')}／{g.events.length}件の記録／{g.rules.name}
+                {new Date(g.createdAt).toLocaleString('ja-JP')}／{playerCountLabel(g.rules.game.playerCount)}／{g.events.length}件の記録
               </small>
             </div>
             <div className="button-row">
@@ -103,7 +104,7 @@ export function HistoryScreen({ onNewGame }: { onNewGame: () => void }) {
                 <span>
                   {t.from === 'pot' ? '供託' : game.players[t.from]} → {t.to === 'pot' ? '供託' : game.players[t.to]}（{REASON[t.reason]}）
                 </span>
-                <span>{t.amount.toLocaleString()}点</span>
+                <span>{fmtPoints(t.amount)}</span>
               </li>
             ))}
           </ul>
@@ -125,7 +126,7 @@ function FixDialog({ onClose }: { onClose: () => void }) {
   const nums = points.map(Number);
   const valid = points.every((p) => /^-?[0-9]+$/.test(p.trim())) && nums.every((n) => Number.isInteger(n));
   const total = nums.reduce((a, b) => a + b, 0) + deposits * game.rules.settlement.riichiStick;
-  const expected = game.rules.game.startingPoints * 4;
+  const expected = game.rules.game.startingPoints * game.rules.game.playerCount;
   return (
     <Dialog
       title="局の状態を修正"
@@ -139,16 +140,16 @@ function FixDialog({ onClose }: { onClose: () => void }) {
             dispatch({
               type: 'commitEvent',
               keepDraft: true,
-              event: { type: 'state_corrected', points: nums as [number, number, number, number], roundWind, kyoku, honba, deposits },
+              event: { type: 'state_corrected', points: nums, roundWind, kyoku, honba, deposits },
             });
             onClose();
           }}
         >
-          修正を記録
+          記録する
         </button>
       }
     >
-      <p className="note">現在: {roundLabel(gameState)}。修正も履歴に記録されます。</p>
+      <p className="note">現在は{roundLabel(gameState)}です。修正も履歴に記録されます。</p>
       <div className="manual-grid">
         {game.players.map((n, i) => (
           <label key={i} className="field">
@@ -166,7 +167,7 @@ function FixDialog({ onClose }: { onClose: () => void }) {
         <label className="field">
           <span>局</span>
           <select value={kyoku} onChange={(e) => setKyoku(Number(e.target.value))}>
-            {[1, 2, 3, 4].map((k) => (
+            {Array.from({ length: game.rules.game.playerCount }, (_, i) => i + 1).map((k) => (
               <option key={k} value={k}>
                 {k}局
               </option>
@@ -183,7 +184,7 @@ function FixDialog({ onClose }: { onClose: () => void }) {
         </label>
       </div>
       {valid && total !== expected && (
-        <p className="warn">⚠ 持ち点＋供託の合計が {total.toLocaleString()}点で、想定（{expected.toLocaleString()}点）と一致しません。</p>
+        <p className="warn">⚠ 持ち点と供託の合計が{fmtPoints(total)}で、想定（{fmtPoints(expected)}）と一致しません。</p>
       )}
     </Dialog>
   );

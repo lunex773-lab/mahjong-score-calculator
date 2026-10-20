@@ -38,11 +38,11 @@ test('新規対局→手牌入力→アガリ計算→記録→保存の再読�
   // 放銃者に西席の C を選ぶ
   await dialog.locator('.form-block').filter({ hasText: '放銃者' }).getByRole('button', { name: 'C' }).click();
   await dialog.getByRole('radio', { name: 'フリテンではない' }).click();
-  await expect(dialog.locator('.breakdown-title')).toHaveText('2翻 30符');
+  await expect(dialog.locator('.breakdown-title')).toHaveText('2翻30符');
   await expect(dialog.locator('.breakdown-total')).toHaveText('3,000点');
   await expect(dialog.locator('.yaku-list').first()).toContainText('立直');
   await expect(dialog.locator('.yaku-list').first()).toContainText('平和');
-  await dialog.getByRole('button', { name: 'この結果を記録' }).click();
+  await dialog.getByRole('button', { name: '記録する' }).click();
 
   const result = page.getByRole('dialog', { name: /の結果$/ });
   await expect(result).toContainText('B ロン 3,000点');
@@ -78,7 +78,7 @@ test('役なし・不正な牌姿は記録できず、理由を表示する', as
   await dialog.locator('.form-block').filter({ hasText: '放銃者' }).getByRole('button', { name: 'C' }).click();
   // 東は対子（雀頭）なので役牌にならず、シャンポン待ちで平和もない → 役なし
   await expect(dialog.locator('.error').first()).toContainText('役がありません');
-  await expect(dialog.getByRole('button', { name: 'この結果を記録' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: '記録する' })).toBeDisabled();
 });
 
 test('5枚目の牌は追加できない（物理枚数の検証）', async ({ page }) => {
@@ -167,4 +167,49 @@ test('流局のノーテン罰符と連荘', async ({ page }) => {
   await page.getByRole('dialog', { name: /の結果$/ }).getByRole('button', { name: '次の局へ' }).click();
   await expect(page.locator('.center-round')).toHaveText('東1局 1本場');
   await expect(page.locator('.seat-tab').nth(0)).toContainText('親');
+});
+
+test('3人打ち: 人数の選択、二萬〜八萬なし、北抜き、ツモ（北家分の折半）、精算', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/');
+  await page.getByRole('radio', { name: /3人打ち/ }).click();
+  await expect(page.locator('.manual-grid .field')).toHaveCount(3);
+  await page.getByRole('button', { name: '対局を始める' }).click();
+
+  // 席は3つ、北席は空席
+  await expect(page.locator('.seat-tab')).toHaveCount(3);
+  await expect(page.locator('.seat-plate.is-empty')).toHaveCount(1);
+  // 萬子は一萬と九萬だけ
+  await page.getByRole('tab', { name: '萬子' }).click();
+  await expect(page.locator('.palette-tile')).toHaveCount(2);
+
+  // 南席（B）: 123p 456p 789s 23s 55p ＋ 4s ツモ、リーチ、北抜き1枚
+  await page.locator('.seat-tab').nth(1).click();
+  for (const l of ['1筒', '2筒', '3筒', '4筒', '5筒', '6筒', '5筒', '5筒']) await tapTile(page, '筒子', l);
+  for (const l of ['7索', '8索', '9索', '2索', '3索']) await tapTile(page, '索子', l);
+  await page.getByRole('button', { name: 'アガリ牌', exact: true }).click();
+  await tapTile(page, '索子', '4索');
+  await page.getByRole('radio', { name: 'リーチ', exact: true }).click();
+  await page.getByRole('button', { name: '抜いた北を1枚増やす' }).click();
+  await page.getByRole('button', { name: 'ドラ表示牌', exact: true }).click();
+  await tapTile(page, '字牌', '白');
+  await page.getByRole('button', { name: /^裏ドラ表示牌/ }).click();
+  await tapTile(page, '字牌', '發');
+
+  await page.getByRole('button', { name: 'アガリ（点数計算）' }).click();
+  const dialog = page.getByRole('dialog', { name: 'アガリの入力' });
+  await dialog.getByRole('radio', { name: /ツモ/ }).click();
+  // リーチ・ツモ・平和・抜きドラ1 = 4翻20符。基本点 1280 → 親 1280×2.5=3200、子 1280×1.5=1920→2000
+  await expect(dialog.locator('.breakdown-title')).toHaveText('4翻20符');
+  await expect(dialog.locator('.yaku-list').first()).toContainText('抜きドラ（北）');
+  await expect(dialog.locator('.breakdown-total')).toHaveText('6,200点');
+  await dialog.getByRole('button', { name: '記録する' }).click();
+  await page.getByRole('dialog', { name: /の結果$/ }).getByRole('button', { name: '次の局へ' }).click();
+
+  // 3人分の精算（35,000点持ち 40,000点返し）
+  await page.getByRole('button', { name: /精算/ }).click();
+  await expect(page.locator('.settle-table tbody tr')).toHaveCount(3);
+  await expect(page.locator('.check-list')).toContainText('持ち点合計 105,000点');
+  await expect(page.locator('.check-list')).toContainText('収支合計 0.0');
 });

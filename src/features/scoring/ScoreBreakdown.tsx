@@ -1,6 +1,7 @@
 import type { ScoringResult } from '../../domain/mahjong/scoring';
 import { LIMIT_LABELS } from '../../domain/mahjong/score';
 import type { PaymentResult } from '../../domain/mahjong/payment';
+import { fmtNumber, fmtPoints } from '../../ui/format';
 
 const KIND_LABEL: Record<PaymentResult['kind'], string> = {
   hand: '点数',
@@ -19,13 +20,13 @@ export function ScoreBreakdown({ result, names }: { result: ScoringResult; names
       : '役満'
     : result.limit
       ? `${LIMIT_LABELS[result.limit]}（${result.han.totalHan}翻${result.limit === 'mangan' && result.han.totalHan < 5 ? `${result.fu.total}符` : ''}）`
-      : `${result.han.totalHan}翻 ${result.fu.total}符`;
+      : `${result.han.totalHan}翻${result.fu.total}符`;
 
   return (
     <div className="breakdown">
       <div className="breakdown-head">
         <span className="breakdown-title">{headline}</span>
-        <span className="breakdown-total">{result.winnerTotal.toLocaleString()}点</span>
+        <span className="breakdown-total">{fmtPoints(result.winnerTotal)}</span>
       </div>
 
       <details open>
@@ -72,14 +73,14 @@ export function ScoreBreakdown({ result, names }: { result: ScoringResult; names
               </li>
             ))}
           </ul>
-          {result.fu.special && <p className="note">特則: {result.fu.special}</p>}
+          {result.fu.special && <p className="note">特則：{result.fu.special}</p>}
         </details>
       )}
 
       <details open>
         <summary>支払い</summary>
         <p className="note">
-          基本点 {result.basePoints.toLocaleString()}（{result.isDealer ? '親' : '子'}の
+          基本点 {fmtNumber(result.basePoints)}（{result.isDealer ? '親' : '子'}の
           {result.payments.length > 1 && !result.payments.some((p) => p.kind === 'pao') ? 'ツモ' : 'アガリ'}）
         </p>
         <ul className="yaku-list">
@@ -89,7 +90,7 @@ export function ScoreBreakdown({ result, names }: { result: ScoringResult; names
                 {nameOf(p.from)} → {nameOf(p.to)}
                 <small>（{KIND_LABEL[p.kind]}）</small>
               </span>
-              <span>{p.amount.toLocaleString()}点</span>
+              <span>{fmtPoints(p.amount)}</span>
             </li>
           ))}
         </ul>
@@ -101,7 +102,7 @@ export function ScoreBreakdown({ result, names }: { result: ScoringResult; names
         </p>
       ))}
       <p className="rule-tag">
-        ルール: {result.ruleProfileId} v{result.ruleProfileVersion}
+        ルール：{result.ruleProfileId} v{result.ruleProfileVersion}
       </p>
     </div>
   );
