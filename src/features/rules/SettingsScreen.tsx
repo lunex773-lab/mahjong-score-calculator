@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { SignedInput } from '../../components/common/SignedInput';
 import { Check, Seg } from '../../components/common/Dialog';
 import { DEFAULT_RULES, validateRuleProfile, type RuleProfile } from '../../domain/rules';
 import { useStore } from '../../store/game-store';
@@ -19,11 +20,31 @@ function NumberInput({ value, onChange, step = 100, min = 0 }: { value: number; 
   return (
     <input
       type="number"
+      inputMode="numeric"
       className="num-input"
       value={value}
       step={step}
       min={min}
       onChange={(e) => onChange(Number(e.target.value))}
+    />
+  );
+}
+
+/** ウマなど負の値を入れる欄（iPhone の数字キーボードにはマイナスが無いため ± ボタン付き） */
+function SignedNumber({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    if (Number(text) !== value) setText(String(value));
+  }, [value]);
+  return (
+    <SignedInput
+      className="num-input-signed"
+      value={text}
+      label={label}
+      onChange={(v) => {
+        setText(v);
+        if (/^-?[0-9]+$/.test(v)) onChange(Number(v));
+      }}
     />
   );
 }
@@ -153,7 +174,7 @@ export function SettingsScreen() {
       </Row>
       <Row label="ウマ（1〜4位）">
         {r.settlement.uma.map((u, i) => (
-          <NumberInput key={i} step={5} min={-100} value={u} onChange={(v) => set((x) => (x.settlement.uma[i] = v))} />
+          <SignedNumber key={i} label={`${i + 1}位のウマ`} value={u} onChange={(v) => set((x) => (x.settlement.uma[i] = v))} />
         ))}
       </Row>
       <Row label="オカ" hint="(返し点−開始点)×4をトップへ">

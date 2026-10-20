@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Seg } from '../../components/common/Dialog';
+import { SignedInput } from '../../components/common/SignedInput';
 import { computeSettlement } from '../../domain/settlement/settlement';
 import { useStore } from '../../store/game-store';
 
@@ -37,11 +38,10 @@ export function SettlementScreen() {
           {game.players.map((name, i) => (
             <label key={i} className="field">
               <span>{name}</span>
-              <input
-                inputMode="numeric"
-                value={manual[i]}
-                onChange={(e) => setManual((m) => m.map((v, j) => (j === i ? e.target.value : v)))}
-                aria-label={`${name}の最終持ち点`}
+              <SignedInput
+                value={manual[i] ?? ''}
+                onChange={(v) => setManual((m) => m.map((x, j) => (j === i ? v : x)))}
+                label={`${name}の最終持ち点`}
               />
             </label>
           ))}
