@@ -1,22 +1,30 @@
 :root {
-  --felt: #0f4d39;
-  --felt-dark: #0b3a2c;
-  --felt-edge: #5a3a22;
-  --bg: #0a2f24;
-  --panel: #f4f1e8;
-  --panel-2: #ebe6d8;
-  --ink: #1d2a24;
-  --ink-dim: #5d6a63;
-  --line: #d6cfbd;
-  --accent: #1f7a55;
-  --accent-ink: #ffffff;
-  --gold: #d9b24c;
-  --danger: #b3261e;
-  --warn-bg: #fff4dd;
-  --warn-ink: #7a4b00;
-  --tile-face: #fbf8ef;
-  --tile-edge: #d9cfb4;
-  --tile-back: #2e7d5b;
+  /* クラシック（深緑×真鍮）のテーマ */
+  --felt: #0f3f2f;
+  --felt-dark: #0a2b21;
+  --felt-edge: #4a2c18;
+  --bg: #061c15;
+  --panel: #f2eadb;
+  --panel-2: #e7dcc5;
+  --ink: #1f1a13;
+  --ink-dim: #6c6250;
+  --line: #d6c7a6;
+  --accent: #174f3b;
+  --accent-ink: #f6eedb;
+  --brass: #b8955a;
+  --brass-hi: #ecd7a4;
+  --brass-lo: #7a5c2d;
+  --brass-grad: linear-gradient(180deg, #f1dfae 0%, #c9a467 45%, #a07c43 100%);
+  --walnut: #3b2416;
+  --walnut-2: #573721;
+  --gold: var(--brass);
+  --danger: #a3271d;
+  --warn-bg: #f8edd2;
+  --warn-ink: #6e4a0c;
+  --tile-face: #fbf6e8;
+  --tile-edge: #dccfae;
+  --tile-back: #24694c;
+  --serif: 'Hiragino Mincho ProN', 'Hiragino Mincho Pro', 'Yu Mincho', 'YuMincho', 'Noto Serif JP', serif;
   --radius: 12px;
   --tabbar-h: 58px;
   /* iPhone のノッチ・Dynamic Island・ホームバーの余白（画面確認時は上書きして再現する） */
@@ -1481,4 +1489,544 @@ textarea {
 }
 .num-input-signed {
   width: 6.5em;
+}
+
+/* =====================================================================
+   テーマ: クラシック（深緑のベルベット × 真鍮 × ウォールナット）
+   ===================================================================== */
+
+/* 木目（ウォールナット）と、ベルベットの質感 */
+.app-header,
+.seat-tabs,
+.palette,
+.tabbar {
+  --wood: repeating-linear-gradient(
+      94deg,
+      rgba(255, 255, 255, 0.025) 0 2px,
+      rgba(0, 0, 0, 0.05) 2px 5px,
+      rgba(255, 255, 255, 0.015) 5px 9px
+    ),
+    linear-gradient(180deg, #4d2f1c 0%, #3a2315 55%, #2d1a10 100%);
+}
+
+body {
+  background: radial-gradient(120% 80% at 50% 0%, #0f3a2c 0%, var(--bg) 70%) fixed;
+}
+.app {
+  background: linear-gradient(180deg, #f4ecdd 0%, #efe5d2 100%);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- ヘッダー ---- */
+.app-header {
+  background: var(--wood);
+  border-bottom: 1px solid var(--brass-lo);
+  box-shadow: inset 0 -3px 0 -2px var(--brass), 0 3px 10px rgba(0, 0, 0, 0.35);
+  color: var(--brass-hi);
+}
+.app-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.18em;
+  background: var(--brass-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 29px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fffaf0, #efe3c8);
+  border-bottom: 3px solid var(--tile-back);
+  box-shadow: 0 0 0 1px var(--brass), 0 2px 4px rgba(0, 0, 0, 0.4);
+  color: #b3261e;
+  -webkit-text-fill-color: #b3261e;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* ---- ボタン類 ---- */
+.btn {
+  border: 1px solid #cdb88c;
+  background: linear-gradient(180deg, #fffdf7 0%, #f1e8d4 100%);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 2px rgba(60, 40, 10, 0.15);
+  letter-spacing: 0.04em;
+}
+.btn-primary,
+.btn-gold {
+  border: 1px solid var(--brass-lo);
+  background: var(--brass-grad);
+  color: #2a1d08;
+  text-shadow: 0 1px 0 rgba(255, 245, 215, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 250, 230, 0.75), 0 2px 6px rgba(70, 45, 10, 0.35);
+}
+.btn-gold {
+  display: inline-flex;
+  gap: 5px;
+}
+.btn-danger {
+  color: var(--danger);
+  border-color: #d9a69b;
+}
+.btn:not(:disabled):active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
+.seg {
+  background: #e3d7bd;
+  box-shadow: inset 0 1px 3px rgba(60, 40, 10, 0.2);
+}
+.seg button {
+  color: #6a5c43;
+}
+.seg button.on {
+  background: linear-gradient(180deg, #164a37, #0f3a2b);
+  color: var(--brass-hi);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(236, 215, 164, 0.45);
+}
+.chip {
+  border-color: #cdb88c;
+  background: linear-gradient(180deg, #fffdf7, #f1e8d4);
+}
+.chip.on {
+  background: linear-gradient(180deg, #164a37, #0f3a2b);
+  border-color: var(--brass);
+  color: var(--brass-hi);
+}
+.check input {
+  accent-color: #174f3b;
+}
+.target-chip {
+  border: 1px solid #cdb88c;
+  background: linear-gradient(180deg, #fffdf7, #f1e8d4);
+}
+.target-chip.on {
+  border-color: var(--brass);
+  background: linear-gradient(180deg, #164a37, #0f3a2b);
+  color: var(--brass-hi);
+}
+.target-chip.on small {
+  color: rgba(236, 215, 164, 0.75);
+}
+
+/* ---- 牌（象牙の面と、深緑の背） ---- */
+.tile {
+  background: linear-gradient(180deg, #fffdf6 0%, var(--tile-face) 62%, #ede2c6 100%);
+  border: 1px solid var(--tile-edge);
+  border-bottom: 3px solid var(--tile-back);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 2px 3px rgba(0, 0, 0, 0.3);
+}
+.tile-xs {
+  border-bottom-width: 2px;
+}
+.tile.is-selected {
+  outline: 2px solid var(--brass);
+  box-shadow: 0 0 0 4px rgba(236, 215, 164, 0.45), 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- 卓 ---- */
+.table-stage {
+  background:
+    radial-gradient(80% 70% at 50% 45%, rgba(40, 110, 80, 0.35) 0%, transparent 70%),
+    radial-gradient(140% 100% at 50% 0%, #0d3528 0%, #061a13 80%);
+}
+.table-felt {
+  border: 10px solid transparent;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% 45%, #1d6a4f 0%, #12503b 45%, #0b3a2a 100%) padding-box,
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 2px, rgba(0, 0, 0, 0.06) 2px 5px) border-box,
+    linear-gradient(180deg, #6b4428, #3d2414) border-box;
+  box-shadow:
+    inset 0 0 0 1.5px var(--brass),
+    inset 0 0 34px rgba(0, 0, 0, 0.45),
+    0 0 0 1px #2a170c,
+    0 14px 30px rgba(0, 0, 0, 0.45);
+}
+.table-felt::after {
+  /* ベルベットの細かな起毛感 */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+.table-skirt {
+  background: linear-gradient(180deg, #4a2c18, #22130a);
+  box-shadow: 0 0 46px 12px rgba(0, 0, 0, 0.55);
+}
+.seat-plate {
+  border: 1px solid rgba(201, 164, 103, 0.55);
+  background: linear-gradient(180deg, rgba(10, 30, 23, 0.9), rgba(4, 16, 12, 0.92));
+  color: #efe4c8;
+  box-shadow: inset 0 1px 0 rgba(236, 215, 164, 0.18), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.is-3d .seat-plate {
+  background: linear-gradient(180deg, rgba(10, 30, 23, 0.93), rgba(4, 16, 12, 0.95));
+}
+.is-3d .seat-plate.is-front {
+  background: linear-gradient(180deg, rgba(20, 52, 39, 0.95), rgba(8, 26, 19, 0.96));
+}
+.seat-plate.is-selected,
+.is-3d .seat-plate.is-selected {
+  background: var(--brass-grad);
+  border-color: #f4e3b5;
+  color: #241806;
+  box-shadow: 0 0 0 1px #6e5226, 0 0 18px rgba(236, 215, 164, 0.45), 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+.seat-name {
+  font-family: var(--serif);
+  letter-spacing: 0.06em;
+}
+.seat-points {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brass-hi);
+}
+.seat-plate.is-selected .seat-points {
+  color: #241806;
+}
+.wind-badge {
+  background: radial-gradient(circle at 35% 30%, #fffaf0, #e7dbbd);
+  color: #1d2a22;
+  font-family: var(--serif);
+  box-shadow: 0 0 0 1px rgba(122, 92, 45, 0.6);
+}
+.wind-badge.is-dealer {
+  background: var(--brass-grad);
+}
+.dealer-mark {
+  background: linear-gradient(180deg, #c0392b, #8e1f16);
+  font-family: var(--serif);
+  box-shadow: 0 0 0 1px rgba(255, 220, 200, 0.35);
+}
+.center-info {
+  background: linear-gradient(180deg, rgba(6, 18, 14, 0.82), rgba(3, 10, 8, 0.86));
+  border: 1px solid rgba(201, 164, 103, 0.6);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(201, 164, 103, 0.25);
+  color: #efe4c8;
+}
+.is-3d .center-info {
+  background: linear-gradient(180deg, rgba(6, 18, 14, 0.88), rgba(3, 10, 8, 0.9));
+}
+.center-round {
+  font-family: var(--serif);
+  letter-spacing: 0.1em;
+  color: var(--brass-hi);
+}
+.table-hint {
+  font-family: var(--serif);
+  letter-spacing: 0.12em;
+  color: rgba(236, 215, 164, 0.5);
+}
+.riichi-stick {
+  background: linear-gradient(180deg, #fff, #e9e2d0);
+}
+
+/* ---- 席タブ ---- */
+.seat-tabs {
+  background: var(--wood);
+  border-top: 1px solid rgba(201, 164, 103, 0.4);
+  border-bottom: 1px solid var(--brass-lo);
+}
+.seat-tab {
+  border: 1px solid rgba(201, 164, 103, 0.35);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.15));
+  color: #e9dcbc;
+}
+.seat-tab-name {
+  font-family: var(--serif);
+}
+.seat-tab.on {
+  background: var(--brass-grad);
+  border-color: #f4e3b5;
+  color: #241806;
+  box-shadow: inset 0 1px 0 rgba(255, 250, 230, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- 手牌の編集 ---- */
+.editor-title {
+  font-family: var(--serif);
+  letter-spacing: 0.06em;
+}
+.rack {
+  background:
+    radial-gradient(circle at 50% 40%, #1a5f47 0%, #0f4232 100%);
+  border: 1px solid #2a170c;
+  box-shadow: inset 0 0 0 1.5px rgba(201, 164, 103, 0.7), inset 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+.rack.is-active {
+  border-color: #2a170c;
+  box-shadow: inset 0 0 0 2px var(--brass-hi), inset 0 2px 12px rgba(0, 0, 0, 0.45), 0 0 0 3px rgba(201, 164, 103, 0.25);
+}
+.rack.is-drop {
+  background: radial-gradient(circle at 50% 40%, #237559 0%, #145040 100%);
+}
+.insert-marker {
+  background: var(--brass-hi);
+  box-shadow: 0 0 8px var(--brass-hi);
+}
+.slot,
+.dora-slots {
+  background: linear-gradient(180deg, #e6dbc3, #efe6d3);
+  box-shadow: inset 0 1px 3px rgba(60, 40, 10, 0.2);
+}
+.slot.is-active,
+.dora-row-edit.is-active .dora-slots {
+  border-color: var(--brass);
+  box-shadow: inset 0 1px 3px rgba(60, 40, 10, 0.2), 0 0 0 3px rgba(201, 164, 103, 0.25);
+}
+.meld {
+  background: linear-gradient(180deg, #ebe1cb, #f2eadb);
+  border: 1px solid #dccca8;
+}
+.block-label {
+  font-family: var(--serif);
+  color: #5a4d36;
+}
+.guide {
+  background: linear-gradient(180deg, #fffcf4, #f6eedd);
+  border: 1px solid #d8c69f;
+  box-shadow: inset 0 0 0 3px #fffcf4, inset 0 0 0 4px rgba(201, 164, 103, 0.35);
+}
+.guide summary {
+  font-family: var(--serif);
+}
+.guide li.done {
+  color: #1d5c44;
+}
+
+/* ---- 牌一覧（ウォールナットの牌箱） ---- */
+.palette {
+  background: var(--wood);
+  border-top: 1px solid var(--brass-lo);
+  box-shadow: inset 0 1px 0 rgba(236, 215, 164, 0.35), 0 -8px 18px rgba(0, 0, 0, 0.3);
+}
+.palette .seg {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.palette .seg button {
+  color: rgba(236, 220, 185, 0.75);
+  font-family: var(--serif);
+}
+.palette .seg button.on {
+  background: var(--brass-grad);
+  color: #241806;
+  box-shadow: inset 0 1px 0 rgba(255, 250, 230, 0.7);
+}
+.palette-hint {
+  color: var(--brass-hi);
+  font-family: var(--serif);
+  letter-spacing: 0.04em;
+}
+.palette-count {
+  background: linear-gradient(180deg, #2b1a0f, #140c06);
+  color: var(--brass-hi);
+  box-shadow: 0 0 0 1px rgba(201, 164, 103, 0.7);
+}
+
+/* ---- 下のタブ ---- */
+.tabbar {
+  background: linear-gradient(180deg, #23150c 0%, #120a05 100%);
+  border-top: 1px solid var(--brass-lo);
+  box-shadow: inset 0 1px 0 rgba(236, 215, 164, 0.25);
+}
+.tabbar button {
+  position: relative;
+  color: rgba(225, 205, 160, 0.5);
+  font-family: var(--serif);
+  letter-spacing: 0.08em;
+}
+.tabbar button.on {
+  color: var(--brass-hi);
+}
+.tabbar button.on::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 28%;
+  right: 28%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--brass-grad);
+  box-shadow: 0 0 8px rgba(236, 215, 164, 0.6);
+}
+.tab-icon {
+  display: grid;
+  place-items: center;
+  height: 24px;
+}
+
+/* ---- ダイアログ ---- */
+.dialog-backdrop {
+  background: rgba(4, 10, 8, 0.6);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.dialog {
+  position: relative;
+  background: linear-gradient(180deg, #f6efe0 0%, #efe5d2 100%);
+  border-top: 2px solid var(--brass);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
+}
+.dialog::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 38px;
+  height: 4px;
+  margin-left: -19px;
+  border-radius: 2px;
+  background: rgba(122, 92, 45, 0.45);
+}
+.dialog-head {
+  border-bottom: 1px solid #d8c69f;
+  padding-top: 16px;
+}
+.dialog-head h2,
+.form-block h3,
+.screen-title,
+.screen h3 {
+  font-family: var(--serif);
+  letter-spacing: 0.06em;
+}
+.winner-block {
+  background: #fffcf5;
+  border-color: #d8c69f;
+}
+.dialog-foot {
+  border-top: 1px solid #d8c69f;
+}
+
+/* ---- 計算結果の内訳 ---- */
+.breakdown {
+  background: #fffcf5;
+  border: 1px solid #cdb88c;
+  box-shadow: inset 0 0 0 3px #fffcf5, inset 0 0 0 4px rgba(201, 164, 103, 0.45), 0 2px 8px rgba(60, 40, 10, 0.12);
+}
+.breakdown-head {
+  border-bottom: 1px solid #d8c69f;
+}
+.breakdown-title {
+  font-family: var(--serif);
+  letter-spacing: 0.06em;
+}
+.breakdown-total {
+  font-family: var(--serif);
+  color: #174f3b;
+  letter-spacing: 0.02em;
+}
+.breakdown summary {
+  font-family: var(--serif);
+}
+.yaku-list li {
+  border-bottom-color: #dccca8;
+}
+
+/* ---- 各画面 ---- */
+.screen-title {
+  font-size: 20px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #cdb88c;
+  box-shadow: 0 1px 0 #fffaf0;
+}
+.screen h3 {
+  border-left-color: var(--brass);
+}
+.settle-table {
+  font-family: var(--serif);
+}
+.settle-table th {
+  border-bottom: 1px solid #b89c64;
+  color: #5a4d36;
+}
+.settle-table .plus {
+  color: #174f3b;
+}
+.history-item,
+.game-list li,
+.rule-summary {
+  background: #fffcf5;
+  border-color: #d8c69f;
+}
+.history-label {
+  font-family: var(--serif);
+}
+.game-list li.current {
+  border-color: var(--brass);
+  box-shadow: 0 0 0 2px rgba(201, 164, 103, 0.3);
+}
+.field input,
+.field select,
+.num-input,
+.signed-input {
+  border-color: #cdb88c;
+  background: #fffdf7;
+}
+.sign-btn {
+  background: #ece2cb;
+  border-right-color: #cdb88c;
+}
+.banner {
+  background: linear-gradient(180deg, #fbf3df, #f3e6c6);
+  border: 1px solid #d8c69f;
+}
+.banner.is-finished {
+  background: linear-gradient(180deg, #e8f1e6, #d6e7d6);
+  border-color: #9fbe9f;
+}
+.toast {
+  background: linear-gradient(180deg, #3a2416, #22140b);
+  border: 1px solid var(--brass);
+  color: #f3e6c8;
+}
+.sticky-actions {
+  background: #efe5d2;
+}
+
+/* ---- 起動エラー時の画面 ---- */
+.fatal {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(40px + var(--safe-top)) 24px 40px;
+  background: radial-gradient(120% 80% at 50% 0%, #0f3a2c 0%, var(--bg) 70%);
+  color: #efe4c8;
+  text-align: center;
+}
+.fatal h1 {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: var(--brass-hi);
+}
+.fatal pre {
+  white-space: pre-wrap;
+  text-align: left;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* 入力欄が画面幅からはみ出さないようにする（16px 化で入力欄の最小幅が広がるため） */
+.manual-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.field input,
+.field select,
+.field .signed-input {
+  width: 100%;
+  min-width: 0;
 }

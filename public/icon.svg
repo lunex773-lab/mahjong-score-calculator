@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0b3a2c"/><rect x="16" y="9" width="32" height="46" rx="5" fill="#f7f1e1" stroke="#c9b98f" stroke-width="2"/><text x="32" y="44" font-size="28" text-anchor="middle" font-family="serif" font-weight="700" fill="#c62828">中</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="40%" r="75%">
+      <stop offset="0" stop-color="#1f6d50"/>
+      <stop offset="1" stop-color="#0a2e22"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1dfae"/>
+      <stop offset=".5" stop-color="#c9a467"/>
+      <stop offset="1" stop-color="#8a6a35"/>
+    </linearGradient>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf6"/>
+      <stop offset="1" stop-color="#eadfc2"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" fill="url(#felt)"/>
+  <rect x="10" y="10" width="160" height="160" rx="22" fill="none" stroke="url(#brass)" stroke-width="3"/>
+  <rect x="17" y="17" width="146" height="146" rx="17" fill="none" stroke="#c9a467" stroke-opacity=".45" stroke-width="1"/>
+  <rect x="54" y="40" width="72" height="100" rx="10" fill="#24694c"/>
+  <rect x="54" y="34" width="72" height="98" rx="10" fill="url(#ivory)" stroke="#c9a467" stroke-width="2"/>
+  <text x="90" y="104" font-size="60" text-anchor="middle" font-family="'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif" font-weight="700" fill="#b3261e">中</text>
+</svg>
