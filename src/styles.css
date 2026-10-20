@@ -371,11 +371,13 @@ button {
 .seat-plate {
   pointer-events: auto;
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 16px;
-  transform: translateX(-50%);
-  min-width: 56%;
-  max-width: 82%;
+  margin: 0 auto;
+  width: max-content;
+  min-width: 46%;
+  max-width: 56%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,13 +505,32 @@ button {
   width: min(92vw, 520px);
 }
 .is-overview .seat-plate {
-  bottom: 8px;
-  max-width: 76%;
-  min-width: 60%;
-  padding: 4px 6px;
+  bottom: 6px;
+  max-width: 68%;
+  min-width: 40%;
+  padding: 2px 4px 3px;
+  gap: 2px;
+}
+.is-overview .seat-line {
+  font-size: 11px;
+  gap: 4px;
+}
+.is-overview .wind-badge {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+.is-overview .seat-points {
+  font-size: 12px;
+}
+.is-overview .riichi-stick {
+  display: none;
+}
+.is-overview .tile-xs {
+  --tw: clamp(11px, 3.4vw, 16px);
 }
 .is-overview .table-center {
-  width: 34%;
+  width: 30%;
 }
 .overview-hand {
   display: flex;
@@ -532,6 +553,9 @@ button {
   display: inline-flex;
   gap: 0;
   margin: 0 2px;
+}
+.overview-row {
+  flex-wrap: nowrap;
 }
 .overview-empty {
   font-size: 11px;
@@ -660,7 +684,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 2px;
+  gap: 1px;
   min-height: 62px;
   margin-top: 6px;
   padding: 8px 6px;
@@ -688,8 +712,6 @@ button {
 }
 .rack-empty {
   display: inline-block;
-  width: clamp(23px, 6.6vw, 32px);
-  height: calc(clamp(23px, 6.6vw, 32px) * 1.36);
   border: 1px dashed rgba(255, 255, 255, 0.25);
   border-radius: 4px;
 }
@@ -1286,6 +1308,16 @@ button {
   .tile-md {
     --tw: 32px;
   }
+}
+
+/* 手牌13枚＋余白が1行に収まる幅 */
+.rack .tile-md,
+.rack-empty {
+  --tw: min(32px, calc((min(100vw, 560px) - 70px) / 13.6));
+}
+.rack-empty {
+  width: var(--tw);
+  height: calc(var(--tw) * 1.36);
 }
 
 @media (prefers-reduced-motion: reduce) {

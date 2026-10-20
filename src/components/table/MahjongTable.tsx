@@ -88,8 +88,9 @@ export function MahjongTable({
                 <span className={`wind-badge${info.isDealer ? ' is-dealer' : ''}`}>{WIND_TEXT[info.wind]}</span>
                 <span className="seat-name">{info.name}</span>
                 {info.isDealer && <span className="dealer-mark">親</span>}
+                {overview && <span className="seat-points">{info.points.toLocaleString()}</span>}
               </span>
-              <span className="seat-points">{info.points.toLocaleString()}</span>
+              {!overview && <span className="seat-points">{info.points.toLocaleString()}</span>}
               {info.riichi && <span className="riichi-stick" title="リーチ" />}
               {overview && sd && (
                 <span className="overview-hand">
@@ -117,10 +118,10 @@ export function MahjongTable({
                   )}
                 </span>
               )}
-              {!overview && sd && (
+              {!overview && sd && (sd.concealed.length > 0 || sd.melds.length > 0 || sd.winningTile) && (
                 <span className="seat-count">
-                  {sd.concealed.length + sd.melds.length * 3}
-                  {sd.winningTile ? `+${tileLabel(sd.winningTile)}` : ''}
+                  手牌{sd.concealed.length + sd.melds.length * 3}枚
+                  {sd.winningTile ? `＋${tileLabel(sd.winningTile)}` : ''}
                 </span>
               )}
             </button>

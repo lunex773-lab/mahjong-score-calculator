@@ -5,13 +5,13 @@ import type { Players } from '../../store/types';
 /** 新しい対局（プレイヤー名の入力）。ルールは現在の設定を開始時点で保存する。 */
 export function NewGameScreen({ onStarted, onOpenSettings }: { onStarted: () => void; onOpenSettings: () => void }) {
   const { state, dispatch } = useStore();
-  const [names, setNames] = useState<Players>(['Aさん', 'Bさん', 'Cさん', 'Dさん']);
+  const [names, setNames] = useState<Players>(['A', 'B', 'C', 'D']);
   const r = state.defaultRules;
   const valid = names.every((n) => n.trim().length > 0);
   return (
     <div className="screen">
       <h2 className="screen-title">新しい対局</h2>
-      <p className="note">座席（東席＝起家・南席・西席・北席）にすわる人の名前を入力してください。東1局は東席の人が親です。</p>
+      <p className="note">座席（東席＝起家・南席・西席・北席）にすわる人の名前を入力してください（敬称の「さん」は自動で付きます）。東1局は東席の人が親です。</p>
       <div className="manual-grid">
         {(['東席（起家）', '南席', '西席', '北席'] as const).map((label, i) => (
           <label key={label} className="field">
