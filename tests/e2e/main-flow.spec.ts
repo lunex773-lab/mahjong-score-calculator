@@ -119,7 +119,7 @@ test('ドラッグで挿入・並べ替え、卓の外へドラッグで削除�
   await expect(tiles).toHaveCount(4);
 
   // 卓を左へ1席分スライド → 南席が手前に
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => document.querySelector('.app-main')?.scrollTo(0, 0));
   const stage = await page.locator('.table-stage').first().boundingBox();
   const y = stage!.y + stage!.height * 0.55;
   const cx = stage!.x + stage!.width / 2;
@@ -236,4 +236,25 @@ test('対局を始める前に設定・使い方を開いても、卓タブか�
   await tab('卓').click();
   await page.getByRole('button', { name: '対局を始める' }).click();
   await expect(page.locator('.center-round')).toHaveText('東1局 0本場');
+});
+
+test('画面全体はスクロールせず、ヘッダー・牌一覧・下のタブが動かない', async ({ page }) => {
+  await startGame(page);
+  const doc = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  expect(doc).toBeLessThanOrEqual(0);
+  await page.evaluate(() => {
+    const m = document.querySelector('.app-main')!;
+    m.scrollTop = m.scrollHeight;
+  });
+  const pos = await page.evaluate(() => ({
+    header: document.querySelector('.app-header')!.getBoundingClientRect().top,
+    palette: document.querySelector('.palette')!.getBoundingClientRect().bottom,
+    tabbarTop: document.querySelector('.tabbar')!.getBoundingClientRect().top,
+    tabbarBottom: document.querySelector('.tabbar')!.getBoundingClientRect().bottom,
+    scrollY: window.scrollY,
+  }));
+  expect(pos.header).toBe(0);
+  expect(pos.scrollY).toBe(0);
+  expect(Math.round(pos.palette)).toBe(Math.round(pos.tabbarTop));
+  expect(Math.round(pos.tabbarBottom)).toBe(page.viewportSize()!.height);
 });
