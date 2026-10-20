@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Check, Dialog, Seg } from '../../components/common/Dialog';
-import { SEATS, type Seat } from '../../domain/mahjong/hand';
+import { seatsOf, type Seat } from '../../domain/mahjong/hand';
 import { applyEvent, dealerOf, ronPriority, type GameEvent, type GameState } from '../../domain/round/game';
 import { riichiSeats, type HandDraft } from '../../store/types';
 import { ScoreBreakdown } from '../scoring/ScoreBreakdown';
+import { fmtPoints } from '../../ui/format';
 import { buildRecordedWins, defaultWinnerOptions, type WinnerOptions, type WinSettings } from './build-win';
 
 /**
@@ -32,7 +33,10 @@ export function WinDialog({
     winners: [initialWinner],
     perWinner: { [initialWinner]: defaultWinnerOptions() },
   });
-  const maxWinners = rules.wins.multipleRon === 'headBump' ? 1 : rules.wins.multipleRon === 'doubleRon' ? 2 : 3;
+  const n = rules.game.playerCount;
+  const seatList = seatsOf(n);
+  // 放銃者以外の全員（4人打ちは3人、3人打ちは2人）までしかロンできない
+  const maxWinners = Math.min(rules.wins.multipleRon === 'headBump' ? 1 : rules.wins.multipleRon === 'doubleRon' ? 2 : 3, n - 1);
 
   const setMethod = (method: 'ron' | 'tsumo') =>
     setSettings((s) => {
@@ -70,14 +74,14 @@ export function WinDialog({
   const setOpt = (seat: Seat, patch: Partial<WinnerOptions>) =>
     setSettings((s) => ({ ...s, perWinner: { ...s.perWinner, [seat]: { ...(s.perWinner[seat] ?? defaultWinnerOptions()), ...patch } } }));
 
-  const riichi = riichiSeats(draft);
+  const riichi = riichiSeats(draft, n);
   const { wins, issues } = useMemo(() => buildRecordedWins(draft, settings), [draft, settings]);
   const event: GameEvent = { type: 'hand_won', riichi, wins };
   const preview = useMemo(() => (issues.length === 0 ? applyEvent(game, event) : null), [game, issues.length, JSON.stringify(event)]);
 
   const ordered =
     settings.method === 'ron' && settings.discarder !== null
-      ? [...settings.winners].sort((a, b) => ronPriority(settings.discarder!, a) - ronPriority(settings.discarder!, b))
+      ? [...settings.winners].sort((a, b) => ronPriority(settings.discarder!, a, n) - ronPriority(settings.discarder!, b, n))
       : settings.winners;
   const tooMany = settings.winners.length > maxWinners;
   const canCommit = !tooMany && issues.length === 0 && !!preview?.ok;
@@ -96,7 +100,7 @@ export function WinDialog({
             戻る
           </button>
           <button type="button" className="btn btn-primary" disabled={!canCommit} onClick={() => onCommit(event)}>
-            この結果を記録
+            記録する
           </button>
         </>
       }
@@ -116,7 +120,7 @@ export function WinDialog({
       <section className="form-block">
         <h3>アガった人{settings.method === 'ron' && maxWinners > 1 ? `（${maxWinners}人まで選べます）` : ''}</h3>
         <div className="chips">
-          {SEATS.map((s) => (
+          {seatList.map((s) => (
             <button
               key={s}
               type="button"
@@ -132,11 +136,11 @@ export function WinDialog({
         </div>
         {tooMany && (
           <p className="error">
-            {settings.winners.length === 3 && rules.draws.threeRon
-              ? '3人がロンした場合は三家和（途中流局）です。「流局・その他」から記録してください'
+            {n === 4 && settings.winners.length === 3 && rules.draws.threeRon
+              ? '3人がロンした場合は三家和（途中流局）です。「流局・その他」から記録してください。'
               : rules.wins.multipleRon === 'headBump'
-                ? '現在のルールは頭ハネです。放銃者の下家に近い1人だけを選んでください'
-                : `同時にアガれるのは${maxWinners}人までです`}
+                ? '現在のルールは頭ハネです。放銃者の下家に近い1人だけを選んでください。'
+                : `同時にアガれるのは${maxWinners}人までです。`}
           </p>
         )}
       </section>
@@ -145,7 +149,7 @@ export function WinDialog({
         <section className="form-block">
           <h3>放銃者（捨て牌でアガられた人）</h3>
           <div className="chips">
-            {SEATS.filter((s) => !settings.winners.includes(s)).map((s) => (
+            {seatList.filter((s) => !settings.winners.includes(s)).map((s) => (
               <button
                 key={s}
                 type="button"
@@ -173,8 +177,9 @@ export function WinDialog({
             <h3>
               {names[seat]}さんのアガリ条件
               <small>
-                （リーチ: {sd.riichi === 'none' ? 'なし' : sd.riichi === 'double' ? 'ダブルリーチ' : 'あり'}
-                {sd.ippatsu ? '・一発' : ''}）
+                （リーチ：{sd.riichi === 'none' ? 'なし' : sd.riichi === 'double' ? 'ダブルリーチ' : 'あり'}
+                {sd.ippatsu ? '・一発' : ''}
+                {sd.nuki > 0 ? `・北抜き ${sd.nuki}枚` : ''}）
               </small>
             </h3>
             <div className="check-grid">
@@ -227,7 +232,7 @@ export function WinDialog({
         <h3>計算結果（記録前の確認）</h3>
         {issues.map((i) => (
           <p key={i.seat} className="error">
-            {names[i.seat]}さん: {i.message}
+            {names[i.seat]}さん：{i.message}
           </p>
         ))}
         {preview && !preview.ok && (
@@ -247,7 +252,9 @@ export function WinDialog({
           </div>
         ))}
         {riichi.length > 0 && preview?.ok && (
-          <p className="note">リーチ棒: {riichi.map((r) => names[r]).join('・')}（各{rules.settlement.riichiStick}点を供託）</p>
+          <p className="note">
+            リーチ棒：{riichi.map((r) => names[r]).join('・')}（各{fmtPoints(rules.settlement.riichiStick)}を供託）
+          </p>
         )}
       </section>
     </Dialog>

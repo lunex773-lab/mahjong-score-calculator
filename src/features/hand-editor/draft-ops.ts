@@ -1,6 +1,6 @@
 import type { Meld, Seat } from '../../domain/mahjong/hand';
 import { validateTileCopies } from '../../domain/mahjong/hand-validation';
-import { compareTiles, rankOf, suitOf, type Tile } from '../../domain/mahjong/tile';
+import { compareTiles, NORTH, rankOf, suitOf, type Tile } from '../../domain/mahjong/tile';
 import type { RuleProfile } from '../../domain/rules';
 import { DORA_LIMITS, emptySeat, tilesInUse, type DoraTarget, type HandDraft, type RiichiState, type SeatDraft } from '../../store/types';
 
@@ -44,7 +44,7 @@ export function addConcealed(draft: HandDraft, seat: Seat, tile: Tile, rules: Ru
   const s = draft.seats[seat];
   const max = MAX_CONCEALED - s.melds.length * 3;
   if (s.concealed.length >= max) {
-    return { ok: false, reason: `手牌は${max}枚までです（アガリ牌は「アガリ牌」欄に入れてください）` };
+    return { ok: false, reason: `手牌は${max}枚までです（アガリ牌は「アガリ牌」欄に入れてください）。` };
   }
   const err = canAddTiles(draft, [tile], rules);
   if (err) return { ok: false, reason: err };
@@ -87,12 +87,12 @@ export function setWinningTile(draft: HandDraft, seat: Seat, tile: Tile | null, 
 
 export function addMeld(draft: HandDraft, seat: Seat, meld: Meld, rules: RuleProfile): OpResult {
   const s = draft.seats[seat];
-  if (s.melds.length >= 4) return { ok: false, reason: '副露は4組までです' };
+  if (s.melds.length >= 4) return { ok: false, reason: '副露は4組までです。' };
   if (s.concealed.length > MAX_CONCEALED - (s.melds.length + 1) * 3) {
-    return { ok: false, reason: '手牌の枚数が多すぎて副露を追加できません。先に手牌から牌を減らしてください' };
+    return { ok: false, reason: '手牌の枚数が多すぎて副露を追加できません。先に手牌から牌を減らしてください。' };
   }
   if (s.riichi !== 'none' && meld.type !== 'ankan') {
-    return { ok: false, reason: 'リーチ中は暗槓以外の副露はできません。先にリーチを外してください' };
+    return { ok: false, reason: 'リーチ中は暗槓以外の副露はできません。先にリーチを外してください。' };
   }
   const err = canAddTiles(draft, meld.tiles, rules);
   if (err) return { ok: false, reason: err };
@@ -107,7 +107,7 @@ export function removeMeld(draft: HandDraft, seat: Seat, index: number): HandDra
 export function toggleMeldRed(draft: HandDraft, seat: Seat, meldIndex: number, tileIndex: number, rules: RuleProfile): OpResult {
   const meld = draft.seats[seat].melds[meldIndex];
   const t = meld?.tiles[tileIndex];
-  if (!meld || !t || rankOf(t.kind) !== 5) return { ok: false, reason: '赤に切り替えられるのは五の牌だけです' };
+  if (!meld || !t || rankOf(t.kind) !== 5) return { ok: false, reason: '赤に切り替えられるのは五の牌だけです。' };
   const tiles = meld.tiles.map((x, i) => (i === tileIndex ? { ...x, red: !x.red } : x));
   const without = removeMeld(draft, seat, meldIndex);
   const err = canAddTiles(without, tiles, rules);
@@ -121,7 +121,7 @@ export function toggleMeldRed(draft: HandDraft, seat: Seat, meldIndex: number, t
 export function setRiichi(draft: HandDraft, seat: Seat, riichi: RiichiState): OpResult {
   const s = draft.seats[seat];
   if (riichi !== 'none' && s.melds.some((m) => m.type !== 'ankan')) {
-    return { ok: false, reason: '副露（暗槓以外）がある手ではリーチできません' };
+    return { ok: false, reason: '副露（暗槓以外）がある手ではリーチできません。' };
   }
   return {
     ok: true,
@@ -133,6 +133,18 @@ export function setIppatsu(draft: HandDraft, seat: Seat, ippatsu: boolean): Hand
   return withSeat(draft, seat, (x) => ({ ...x, ippatsu: x.riichi === 'none' ? false : ippatsu }));
 }
 
+/** 3人打ちで抜いた北の枚数を変更する（卓全体の北は4枚まで） */
+export function setNuki(draft: HandDraft, seat: Seat, count: number, rules: RuleProfile): OpResult {
+  if (rules.game.playerCount !== 3 || !rules.sanma.nukiDora) return { ok: false, reason: '現在のルールでは北抜きを採用していません。' };
+  if (count < 0 || count > 4) return { ok: false, reason: '抜いた北は0〜4枚です。' };
+  const current = draft.seats[seat].nuki;
+  if (count > current) {
+    const err = canAddTiles(draft, Array.from({ length: count - current }, () => ({ kind: NORTH, red: false })), rules);
+    if (err) return { ok: false, reason: err };
+  }
+  return { ok: true, draft: withSeat(draft, seat, (x) => ({ ...x, nuki: count })) };
+}
+
 export function clearSeat(draft: HandDraft, seat: Seat): HandDraft {
   const riichi = draft.seats[seat].riichi;
   return withSeat(draft, seat, () => ({ ...emptySeat(), riichi }));
@@ -140,7 +152,7 @@ export function clearSeat(draft: HandDraft, seat: Seat): HandDraft {
 
 export function addDora(draft: HandDraft, target: DoraTarget, tile: Tile, rules: RuleProfile): OpResult {
   if (draft.dora[target].length >= DORA_LIMITS[target]) {
-    return { ok: false, reason: `${target === 'dora' || target === 'ura' ? '表示牌は1枚' : '槓ドラ表示牌は4枚'}までです` };
+    return { ok: false, reason: `${target === 'dora' || target === 'ura' ? '表示牌は1枚' : '槓ドラ表示牌は4枚'}までです。` };
   }
   const err = canAddTiles(draft, [tile], rules);
   if (err) return { ok: false, reason: err };
@@ -155,7 +167,7 @@ export function removeDora(draft: HandDraft, target: DoraTarget, index: number):
 export function buildMeld(type: Meld['type'], tile: Tile, calledFrom: Seat | undefined): Meld | string {
   if (type === 'chi') {
     const r = rankOf(tile.kind);
-    if (r === null || r > 7) return 'チーは数牌の1〜7をタップしてください（タップした牌から始まる3枚になります）';
+    if (r === null || r > 7) return 'チーは数牌の1〜7をタップしてください（タップした牌から始まる3枚になります）。';
     const tiles: Tile[] = [tile, { kind: tile.kind + 1, red: false }, { kind: tile.kind + 2, red: false }];
     return { type, tiles, ...(calledFrom !== undefined ? { calledFrom } : {}) };
   }

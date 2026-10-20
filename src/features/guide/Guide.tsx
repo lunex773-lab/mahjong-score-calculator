@@ -10,7 +10,7 @@ export function Guide({ draft, seat, name }: { draft: HandDraft; seat: Seat; nam
     { done: sd.concealed.length === capacity, text: `アガった人（${name}）の手牌を${capacity}枚並べる` },
     { done: sd.melds.length > 0 || sd.concealed.length === 13, text: '鳴いた面子・槓があれば「副露」に登録する' },
     { done: !!sd.winningTile, text: '「アガリ牌」を入れる' },
-    { done: true, text: `リーチの有無を設定する（現在: ${riichi ? 'あり' : 'なし'}）` },
+    { done: true, text: `リーチの有無を設定する（現在：${riichi ? 'あり' : 'なし'}）` },
     { done: draft.dora.dora.length === 1, text: 'ドラ表示牌を入れる' },
   ];
   if (riichi) steps.push({ done: draft.dora.ura.length === 1, text: 'リーチしているので裏ドラ表示牌も入れる' });

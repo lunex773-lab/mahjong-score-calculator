@@ -2030,3 +2030,32 @@ body {
   width: 100%;
   min-width: 0;
 }
+
+/* 3人打ちの空席（北） */
+.seat-plate.is-empty,
+.is-3d .seat-plate.is-empty {
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px dashed rgba(201, 164, 103, 0.35);
+  box-shadow: none;
+  color: rgba(236, 220, 185, 0.45);
+  font-family: var(--serif);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.seat-tabs.is-three {
+  grid-template-columns: repeat(3, 1fr);
+}
+.nuki-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.nuki-tiles {
+  display: inline-flex;
+  gap: 2px;
+  min-width: 110px;
+  min-height: 36px;
+  align-items: center;
+}

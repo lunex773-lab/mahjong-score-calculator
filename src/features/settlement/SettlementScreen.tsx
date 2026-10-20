@@ -3,8 +3,9 @@ import { Seg } from '../../components/common/Dialog';
 import { SignedInput } from '../../components/common/SignedInput';
 import { computeSettlement } from '../../domain/settlement/settlement';
 import { useStore } from '../../store/game-store';
+import { fmtNumber, fmtPoints, fmtSigned, fmtUma, playerCountLabel } from '../../ui/format';
 
-const fmtPt = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}`;
+const fmtPt = (n: number) => fmtSigned(n, 1);
 
 /** 順位・ウマ・オカ・最終収支。対局の記録から算出するモードと、最終持ち点を直接入力するモード。 */
 export function SettlementScreen() {
@@ -31,7 +32,7 @@ export function SettlementScreen() {
         ]}
       />
       {mode === 'game' && !gameState.finished && (
-        <p className="note">対局はまだ終了していません（現在 {gameState.logs.length} 局を記録）。現時点の持ち点で試算しています。</p>
+        <p className="note">対局はまだ終了していません（{gameState.logs.length}局を記録済み）。現時点の持ち点で試算しています。</p>
       )}
       {mode === 'manual' && (
         <div className="manual-grid">
@@ -45,7 +46,7 @@ export function SettlementScreen() {
               />
             </label>
           ))}
-          {invalid && <p className="error">持ち点は100点単位の整数で4人分入力してください</p>}
+          {invalid && <p className="error">持ち点は100点単位の整数で{game.players.length}人分を入力してください。</p>}
         </div>
       )}
 
@@ -68,7 +69,7 @@ export function SettlementScreen() {
                 <tr key={r.seat}>
                   <td>{r.rank}位</td>
                   <td>{game.players[r.seat]}</td>
-                  <td>{r.points.toLocaleString()}</td>
+                  <td>{fmtNumber(r.points)}</td>
                   <td>{fmtPt(r.base)}</td>
                   <td>{fmtPt(r.uma)}</td>
                   <td>{fmtPt(r.oka)}</td>
@@ -79,19 +80,19 @@ export function SettlementScreen() {
           </table>
           <ul className="check-list">
             <li className={result.pointsDifference + depositsLeft === 0 ? 'ok' : 'ng'}>
-              持ち点合計 {result.pointsTotal.toLocaleString()}点（想定 {result.expectedTotal.toLocaleString()}点）
-              {depositsLeft > 0 && `／場に残っている供託 ${depositsLeft.toLocaleString()}点`}
-              {result.pointsDifference + depositsLeft !== 0 && ` … ${Math.abs(result.pointsDifference + depositsLeft).toLocaleString()}点の差があります`}
+              持ち点合計 {fmtPoints(result.pointsTotal)}（想定 {fmtPoints(result.expectedTotal)}）
+              {depositsLeft > 0 && `／場に残っている供託 ${fmtPoints(depositsLeft)}`}
+              {result.pointsDifference + depositsLeft !== 0 && `。${fmtPoints(Math.abs(result.pointsDifference + depositsLeft))}の差があります`}
             </li>
             <li className={result.totalSum === 0 ? 'ok' : 'ng'}>
               収支合計 {fmtPt(result.totalSum)}
-              {result.totalSum !== 0 && '（持ち点合計が想定と異なるため0になりません）'}
+              {result.totalSum !== 0 && '（持ち点合計が想定と異なるため、0になりません）'}
             </li>
           </ul>
           <p className="note">
-            ルール: 開始 {rules.game.startingPoints.toLocaleString()}点・返し {rules.game.returnPoints.toLocaleString()}点・ウマ{' '}
-            {rules.settlement.uma.join(' / ')}・オカ{rules.settlement.okaEnabled ? `あり（${result.okaTotal}）` : 'なし'}・同点は
-            {rules.settlement.tieBreak === 'seatOrder' ? '起家に近い方が上位' : '順位点を等分'}。収支は千点＝1の単位です。
+            ルール：{playerCountLabel(rules.game.playerCount)}・{fmtPoints(rules.game.startingPoints)}持ち {fmtPoints(rules.game.returnPoints)}返し・ウマ{' '}
+            {fmtUma(rules.settlement.uma)}・オカ{rules.settlement.okaEnabled ? `あり（${fmtSigned(result.okaTotal)}）` : 'なし'}・同点は
+            {rules.settlement.tieBreak === 'seatOrder' ? '起家に近い方が上位' : '順位点を等分'}。収支は1,000点を1とする単位です。
           </p>
         </>
       )}

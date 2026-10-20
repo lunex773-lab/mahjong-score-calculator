@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { replay, type GameEvent, type GameState } from '../domain/round/game';
-import type { RuleProfile } from '../domain/rules';
+import type { PlayerCount, RuleProfile } from '../domain/rules';
 import type { RuleError } from '../domain/errors';
 import { loadCurrentId, loadDefaultRules, loadGames, saveCurrentId, saveDefaultRules, saveGames } from '../infrastructure/storage';
 import { emptyDraft, type HandDraft, type Players, type SavedGame } from './types';
@@ -14,7 +14,8 @@ const HISTORY_LIMIT = 100;
 interface StoreState {
   games: SavedGame[];
   currentId: string | null;
-  defaultRules: RuleProfile;
+  /** 人数ごとの「次の対局で使うルール」 */
+  defaultRules: Record<PlayerCount, RuleProfile>;
   past: HandDraft[];
   future: HandDraft[];
   notices: string[];
@@ -113,7 +114,7 @@ function reducer(state: StoreState, action: Action): StoreState {
     case 'renamePlayers':
       return updateCurrent(state, (g) => ({ ...g, players: action.players }));
     case 'setDefaultRules':
-      return { ...state, defaultRules: action.rules };
+      return { ...state, defaultRules: { ...state.defaultRules, [action.rules.game.playerCount]: action.rules } };
     case 'notice':
       return { ...state, notices: [...state.notices, action.message] };
     case 'dismissNotice':
@@ -123,15 +124,16 @@ function reducer(state: StoreState, action: Action): StoreState {
 
 function init(): StoreState {
   const games = loadGames();
-  const rules = loadDefaultRules();
+  const rules4 = loadDefaultRules(4);
+  const rules3 = loadDefaultRules(3);
   const id = loadCurrentId();
   return {
     games: games.value,
     currentId: games.value.some((g) => g.id === id) ? id : (games.value[0]?.id ?? null),
-    defaultRules: rules.value,
+    defaultRules: { 4: rules4.value, 3: rules3.value },
     past: [],
     future: [],
-    notices: [...games.warnings, ...rules.warnings],
+    notices: [...games.warnings, ...rules4.warnings, ...rules3.warnings],
   };
 }
 
@@ -160,7 +162,7 @@ export function StoreProvider({ children, initialState }: { children: ReactNode;
   }, [state.games]);
   useEffect(() => saveCurrentId(state.currentId), [state.currentId]);
   useEffect(() => {
-    const err = saveDefaultRules(state.defaultRules);
+    const err = saveDefaultRules(state.defaultRules[4]) ?? saveDefaultRules(state.defaultRules[3]);
     if (err) dispatch({ type: 'notice', message: err });
   }, [state.defaultRules]);
 

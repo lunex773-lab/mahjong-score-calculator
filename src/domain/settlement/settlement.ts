@@ -1,4 +1,4 @@
-import type { Seat } from '../mahjong/hand';
+import { seatsOf, type Seat } from '../mahjong/hand';
 import type { RuleProfile } from '../rules';
 
 /**
@@ -17,7 +17,7 @@ export interface Placement {
 
 /** 持ち点の大小で順位を決める。同点は設定に従う（起家に近い方が上位 / 同順位）。 */
 export function computePlacements(points: readonly number[], rules: RuleProfile): Placement[] {
-  const seats = ([0, 1, 2, 3] as Seat[]).slice().sort((a, b) => (points[b]! - points[a]!) || a - b);
+  const seats = seatsOf(rules.game.playerCount).sort((a, b) => (points[b]! - points[a]!) || a - b);
   const out: Placement[] = [];
   seats.forEach((seat, i) => {
     if (rules.settlement.tieBreak === 'seatOrder') {
@@ -57,7 +57,8 @@ const round1 = (x: number): number => Math.round(x * 10) / 10;
 export function computeSettlement(points: readonly number[], rules: RuleProfile): SettlementResult {
   const { startingPoints, returnPoints } = rules.game;
   const uma = rules.settlement.uma;
-  const okaTotal = rules.settlement.okaEnabled ? ((returnPoints - startingPoints) * 4) / 1000 : 0;
+  const n = rules.game.playerCount;
+  const okaTotal = rules.settlement.okaEnabled ? ((returnPoints - startingPoints) * n) / 1000 : 0;
   const placements = computePlacements(points, rules);
 
   const rows: SettlementRow[] = placements.map((p) => {
@@ -77,7 +78,7 @@ export function computeSettlement(points: readonly number[], rules: RuleProfile)
     };
   });
   const pointsTotal = points.reduce((a, b) => a + b, 0);
-  const expectedTotal = startingPoints * 4;
+  const expectedTotal = startingPoints * n;
   return {
     rows,
     pointsTotal,

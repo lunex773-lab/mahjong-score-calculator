@@ -13,6 +13,7 @@ import {
   KIND_COUNT,
   rankOf,
   suitOf,
+  NORTH,
   WINDS,
   type TileKind,
 } from './tile';
@@ -53,6 +54,7 @@ export type YakuId =
   | 'yakuhai-red'
   | 'yakuhai-seat-wind'
   | 'yakuhai-round-wind'
+  | 'yakuhai-north'
   | 'rinshan'
   | 'chankan'
   | 'haitei'
@@ -136,8 +138,11 @@ const trips = (p: StandardPattern): Group[] => p.groups.filter((g) => g.type ===
 const seqs = (p: StandardPattern): Group[] => p.groups.filter((g) => g.type === 'seq');
 const hasTripOf = (p: StandardPattern, kind: TileKind): boolean => trips(p).some((g) => g.kind === kind);
 
+/** 3人打ちで北を役牌とする設定か（初期値は抜きドラ専用で役牌にしない） */
+export const northIsYakuhai = (rules: RuleProfile): boolean => rules.game.playerCount === 3 && rules.sanma.northYakuhai;
+
 const isYakuhaiKind = (ctx: YakuContext, kind: TileKind): boolean =>
-  isDragon(kind) || kind === ctx.seatWind || kind === ctx.roundWind;
+  isDragon(kind) || kind === ctx.seatWind || kind === ctx.roundWind || (kind === NORTH && northIsYakuhai(ctx.rules));
 
 /** 同一順子の組数（一盃口=1, 二盃口=2） */
 function identicalSeqPairs(p: StandardPattern): number {
@@ -217,6 +222,13 @@ export const YAKU_DEFINITIONS: readonly YakuDefinition[] = [
   { id: 'yakuhai-red', name: '役牌 中', closedHan: 1, openHan: 1, judge: (c) => !!std(c) && hasTripOf(std(c)!, DRAGONS[2]) },
   { id: 'yakuhai-seat-wind', name: '自風牌', closedHan: 1, openHan: 1, judge: (c) => !!std(c) && hasTripOf(std(c)!, c.seatWind) },
   { id: 'yakuhai-round-wind', name: '場風牌', closedHan: 1, openHan: 1, judge: (c) => !!std(c) && hasTripOf(std(c)!, c.roundWind) },
+  {
+    id: 'yakuhai-north',
+    name: '役牌 北',
+    closedHan: 1,
+    openHan: 1,
+    judge: (c) => northIsYakuhai(c.rules) && !!std(c) && hasTripOf(std(c)!, NORTH),
+  },
   { id: 'rinshan', name: '嶺上開花', closedHan: 1, openHan: 1, judge: (c) => c.flags.rinshan },
   { id: 'chankan', name: '槍槓', closedHan: 1, openHan: 1, judge: (c) => c.flags.chankan },
   { id: 'haitei', name: '海底摸月', closedHan: 1, openHan: 1, judge: (c) => c.flags.haitei },

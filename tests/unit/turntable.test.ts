@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearestAngleFor, seatOfAngle } from '../../src/components/table/MahjongTable';
+import { nearestAngleFor, seatOfAngle, snapToAvailable } from '../../src/components/table/MahjongTable';
 
 describe('3D卓の回転角', () => {
   it('角度から手前の席を求める（90度ごと、負の角度・複数周も可）', () => {
@@ -13,5 +13,11 @@ describe('3D卓の回転角', () => {
     expect(Math.abs(opposite - 720)).toBe(180);
     expect(seatOfAngle(opposite)).toBe(2);
     expect(nearestAngleFor(90, 1)).toBe(90);
+  });
+  it('3人打ちでは空席（北席=270度）で止まらず、回した向きの次の席へ進む', () => {
+    expect(snapToAvailable(270, +1, 3)).toBe(360); // 西席→（空席）→東席
+    expect(snapToAvailable(270, -1, 3)).toBe(180); // 東席→（空席）→西席
+    expect(snapToAvailable(90, +1, 3)).toBe(90);
+    expect(snapToAvailable(270, +1, 4)).toBe(270);
   });
 });

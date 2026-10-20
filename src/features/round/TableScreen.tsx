@@ -4,7 +4,7 @@ import { MahjongTable, type SeatInfo } from '../../components/table/MahjongTable
 import { TileView } from '../../components/tiles/Tile';
 import { TilePalette } from '../../components/tiles/TilePalette';
 import { useDrag } from '../../components/tiles/drag';
-import { SEATS, seatWindOf, type Seat } from '../../domain/mahjong/hand';
+import { SEAT_NAMES, seatsOf, seatWindOf, type Seat } from '../../domain/mahjong/hand';
 import type { Tile } from '../../domain/mahjong/tile';
 import { dealerOf, roundLabel, type GameEvent, type HandLog } from '../../domain/round/game';
 import { useStore } from '../../store/game-store';
@@ -14,18 +14,20 @@ import { DoraEditor } from '../hand-editor/DoraEditor';
 import * as ops from '../hand-editor/draft-ops';
 import { meldFromSeat, SeatEditor, type MeldConfig } from '../hand-editor/SeatEditor';
 import { ScoreBreakdown } from '../scoring/ScoreBreakdown';
+import { fmtPoints } from '../../ui/format';
 import { DrawDialog } from './DrawDialog';
 import { WinDialog } from './WinDialog';
 
 const TARGET_HINT: Record<EditTarget, string> = {
-  concealed: '入力先: 手牌',
-  winning: '入力先: アガリ牌',
-  meld: '入力先: 副露',
-  dora: `入力先: ${DORA_LABELS.dora}`,
-  kanDora: `入力先: ${DORA_LABELS.kanDora}`,
-  ura: `入力先: ${DORA_LABELS.ura}`,
-  kanUra: `入力先: ${DORA_LABELS.kanUra}`,
+  concealed: '入力先：手牌',
+  winning: '入力先：アガリ牌',
+  meld: '入力先：副露',
+  dora: `入力先：${DORA_LABELS.dora}`,
+  kanDora: `入力先：${DORA_LABELS.kanDora}`,
+  ura: `入力先：${DORA_LABELS.ura}`,
+  kanUra: `入力先：${DORA_LABELS.kanUra}`,
 };
+const WIND_TEXT = ['東', '南', '西', '北'];
 
 export function TableScreen({
   overviewOpen,
@@ -77,12 +79,14 @@ export function TableScreen({
 
   if (!game || !gameState || !draft || !rules) return null;
 
+  const n = rules.game.playerCount;
+  const seatList = seatsOf(n);
   const dealer = dealerOf(gameState);
   const sd = draft.seats[seat];
-  const seats: SeatInfo[] = SEATS.map((s) => ({
-    name: game.players[s],
+  const seats: SeatInfo[] = seatList.map((s) => ({
+    name: game.players[s] ?? '',
     points: gameState.points[s]!,
-    wind: seatWindOf(s, dealer) - 27,
+    wind: seatWindOf(s, dealer, n) - 27,
     isDealer: s === dealer,
     riichi: draft.seats[s].riichi !== 'none',
   }));
@@ -96,7 +100,7 @@ export function TableScreen({
         apply(ops.setWinningTile(draft, seat, tile, rules));
         return;
       case 'meld': {
-        const meld = ops.buildMeld(meldCfg.type, tile, meldFromSeat(seat, meldCfg));
+        const meld = ops.buildMeld(meldCfg.type, tile, meldFromSeat(seat, meldCfg, n));
         if (typeof meld === 'string') setToast(meld);
         else apply(ops.addMeld(draft, seat, meld, rules));
         return;
@@ -120,9 +124,7 @@ export function TableScreen({
   const center = (
     <div className="center-info">
       <div className="center-round">{roundLabel(gameState)}</div>
-      <div className="center-deposit">
-        供託 {gameState.deposits}本
-      </div>
+      <div className="center-deposit">供託 {gameState.deposits}本</div>
       <div className="center-dora" aria-label="ドラ表示牌">
         {draft.dora.dora.length === 0 && draft.dora.kanDora.length === 0 ? (
           <span className="muted">ドラ表示牌 未入力</span>
@@ -137,7 +139,7 @@ export function TableScreen({
     <div className="table-screen">
       {replayErrors.length > 0 && (
         <p className="error" role="alert">
-          対局記録の再生中に問題が見つかりました: {replayErrors[0]?.message}
+          対局記録の再生中に問題が見つかりました：{replayErrors[0]?.message}
         </p>
       )}
       {gameState.pending && (
@@ -153,7 +155,7 @@ export function TableScreen({
             >
               終了する
             </button>
-            <span className="note">続ける場合はそのまま次の局を入力してください</span>
+            <span className="note">続ける場合は、そのまま次の局を入力してください。</span>
           </div>
         </div>
       )}
@@ -168,8 +170,8 @@ export function TableScreen({
 
       <MahjongTable seats={seats} selected={seat} onSelect={(s) => { setSeat(s); setSelectedIndex(null); }} center={center} draft={draft} />
 
-      <nav className="seat-tabs" aria-label="席の切り替え">
-        {SEATS.map((s) => (
+      <nav className={`seat-tabs${n === 3 ? ' is-three' : ''}`} aria-label="席の切り替え">
+        {seatList.map((s) => (
           <button
             key={s}
             type="button"
@@ -180,10 +182,10 @@ export function TableScreen({
             }}
             aria-pressed={s === seat}
           >
-            <span className="seat-tab-pos">{['東', '南', '西', '北'][s]}席</span>
+            <span className="seat-tab-pos">{SEAT_NAMES[s]}</span>
             <span className="seat-tab-name">{game.players[s]}</span>
             <span className="seat-tab-meta">
-              自風{['東', '南', '西', '北'][seats[s]!.wind]}
+              自風 {WIND_TEXT[seats[s]!.wind]}
               {s === dealer ? '・親' : ''}
             </span>
           </button>
@@ -192,7 +194,7 @@ export function TableScreen({
 
       <div className="editor-toolbar">
         <span className="editor-title">
-          {game.players[seat]}さん <small>{gameState.points[seat]!.toLocaleString()}点</small>
+          {game.players[seat]}さん <small>{fmtPoints(gameState.points[seat]!)}</small>
         </span>
         <button type="button" className="btn btn-small" onClick={() => dispatch({ type: 'undo' })} disabled={!canUndo} aria-label="元に戻す">
           ↶ 戻す
@@ -206,6 +208,10 @@ export function TableScreen({
         seat={seat}
         sd={sd}
         names={game.players}
+        playerCount={n}
+        allowChi={n === 4 || rules.sanma.allowChi}
+        nukiEnabled={n === 3 && rules.sanma.nukiDora}
+        onNuki={(count) => apply(ops.setNuki(draft, seat, count, rules))}
         target={target}
         onTarget={setTarget}
         meldCfg={meldCfg}
@@ -245,7 +251,7 @@ export function TableScreen({
         onRemove={(t, i) => dispatch({ type: 'draft', draft: ops.removeDora(draft, t, i) })}
       />
 
-      <Guide draft={draft} seat={seat} name={game.players[seat]} />
+      <Guide draft={draft} seat={seat} name={game.players[seat] ?? ''} />
 
       <div className="action-bar">
         <button type="button" className="btn btn-primary btn-large" disabled={gameState.finished} onClick={() => setDialog('win')}>
@@ -260,6 +266,7 @@ export function TableScreen({
         remaining={(t) => ops.remainingCount(draft, t, rules)}
         onPick={onPick}
         akaSuits={{ man: rules.dora.aka.man > 0, pin: rules.dora.aka.pin > 0, sou: rules.dora.aka.sou > 0 }}
+        playerCount={n}
         hint={TARGET_HINT[target]}
       />
 
@@ -307,19 +314,21 @@ export function TableScreen({
                   <span>
                     {t.from === 'pot' ? '供託' : game.players[t.from]} → {t.to === 'pot' ? '供託' : game.players[t.to]}
                   </span>
-                  <span>{t.amount.toLocaleString()}点</span>
+                  <span>{fmtPoints(t.amount)}</span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="note">次は {roundLabel(gameState)}（供託{gameState.deposits}本）です。</p>
+          <p className="note">
+            次は{roundLabel(gameState)}（供託 {gameState.deposits}本）です。
+          </p>
         </Dialog>
       )}
 
       {overviewOpen && (
         <Dialog title="卓の俯瞰（すべての牌）" onClose={onCloseOverview} wide>
           <MahjongTable seats={seats} selected={seat} onSelect={setSeat} center={center} draft={draft} view="flat" />
-          <p className="note">卓を左右にスワイプすると回転します。各席の手牌・アガリ牌（金枠）・副露と、中央にドラ表示牌を表示しています。</p>
+          <p className="note">卓を横にスライドすると回転します。各席の手牌・アガリ牌（金枠）・副露と、中央にドラ表示牌を表示しています。</p>
         </Dialog>
       )}
     </div>

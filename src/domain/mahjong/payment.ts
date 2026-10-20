@@ -1,5 +1,5 @@
 import type { RuleProfile } from '../rules';
-import type { Seat, WinMethod } from './hand';
+import { seatsOf, type Seat, type WinMethod } from './hand';
 import { roundUp100 } from './score';
 
 /**
@@ -38,19 +38,31 @@ export interface WinPayments {
   depositTransfer: PaymentResult | null;
 }
 
-const others = (seat: Seat): Seat[] => ([0, 1, 2, 3] as Seat[]).filter((s) => s !== seat);
+const others = (seat: Seat, playerCount: 3 | 4): Seat[] => seatsOf(playerCount).filter((s) => s !== seat);
 
 /** ロン時に放銃者1人が支払う額 */
 export function ronAmount(base: number, winnerIsDealer: boolean): number {
   return roundUp100(base * (winnerIsDealer ? 6 : 4));
 }
 
-/** ツモ時に各支払者が支払う額 */
-export function tsumoAmounts(base: number, winner: Seat, dealer: Seat): Map<Seat, number> {
+/**
+ * ツモ時に各支払者が支払う額。
+ * 4人打ち: 親のツモは各自 基本点×2、子のツモは親 ×2・子 ×1。
+ * 3人打ち（北家がいない）:
+ *   split = 北家が払うはずの分を残る2人で折半（親のツモは各自 ×3、子のツモは親 ×2.5・子 ×1.5）
+ *   loss  = 4人打ちと同じ額を2人が払い、北家の分は払われない（ツモ損）
+ * 端数は各支払額の最後に1回だけ100点単位へ切り上げる（同じ金額を二重に丸めない）。
+ */
+export function tsumoAmounts(base: number, winner: Seat, dealer: Seat, rules: RuleProfile): Map<Seat, number> {
+  const n = rules.game.playerCount;
+  const split = n === 3 && rules.sanma.tsumoPayment === 'split';
   const map = new Map<Seat, number>();
-  for (const s of others(winner)) {
-    if (winner === dealer) map.set(s, roundUp100(base * 2));
-    else map.set(s, roundUp100(s === dealer ? base * 2 : base));
+  for (const s of others(winner, n)) {
+    let mult: number;
+    if (winner === dealer) mult = split ? 3 : 2;
+    else if (s === dealer) mult = split ? 2.5 : 2;
+    else mult = split ? 1.5 : 1;
+    map.set(s, roundUp100(base * mult));
   }
   return map;
 }
@@ -82,7 +94,7 @@ export function computeWinPayments(input: WinPaymentInput): WinPayments {
     }
   } else {
     if (input.base > 0) {
-      for (const [seat, amount] of tsumoAmounts(input.base, winner, dealer)) {
+      for (const [seat, amount] of tsumoAmounts(input.base, winner, dealer, rules)) {
         payments.push({ from: seat, to: winner, amount, kind: 'hand' });
       }
     }
@@ -91,7 +103,7 @@ export function computeWinPayments(input: WinPaymentInput): WinPayments {
         // ツモ時の包: 責任者がロン相当額を全額負担
         payments.push({ from: pao, to: winner, amount: ronAmount(input.paoBase, winnerIsDealer), kind: 'pao' });
       } else {
-        for (const [seat, amount] of tsumoAmounts(input.paoBase, winner, dealer)) {
+        for (const [seat, amount] of tsumoAmounts(input.paoBase, winner, dealer, rules)) {
           payments.push({ from: seat, to: winner, amount, kind: 'hand' });
         }
       }
@@ -99,9 +111,14 @@ export function computeWinPayments(input: WinPaymentInput): WinPayments {
     if (input.honba > 0) {
       if (pao !== undefined) {
         // 包のツモでは責任者が本場もまとめて支払う
-        honbaPayments.push({ from: pao, to: winner, amount: rules.settlement.honbaTsumoEach * 3 * input.honba, kind: 'honba' });
+        honbaPayments.push({
+          from: pao,
+          to: winner,
+          amount: rules.settlement.honbaTsumoEach * (rules.game.playerCount - 1) * input.honba,
+          kind: 'honba',
+        });
       } else {
-        for (const seat of others(winner)) {
+        for (const seat of others(winner, rules.game.playerCount)) {
           honbaPayments.push({ from: seat, to: winner, amount: rules.settlement.honbaTsumoEach * input.honba, kind: 'honba' });
         }
       }

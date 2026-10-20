@@ -92,16 +92,25 @@ export interface WinInput {
   readonly riichiSticks: number;
   /** 包の責任者 */
   readonly paoSeat?: Seat;
+  /** 3人打ちで抜いた北の枚数（手牌の面子・雀頭には含めない） */
+  readonly nukiCount?: number;
 }
 
-export function seatWindOf(seat: Seat, dealer: Seat): TileKind {
-  return 27 + ((seat - dealer + 4) % 4);
+/** 人数分の座席（3人打ちは東席・南席・西席の3席で、北席は存在しない） */
+export const seatsOf = (playerCount: 3 | 4): Seat[] => SEATS.slice(0, playerCount) as Seat[];
+
+/** その局の自風（3人打ちは東・南・西のみ） */
+export function seatWindOf(seat: Seat, dealer: Seat, playerCount: 3 | 4 = 4): TileKind {
+  return 27 + ((seat - dealer + playerCount) % playerCount);
 }
 
-/** seat から見た上家の座席 */
-export const kamichaOf = (seat: Seat): Seat => ((seat + 3) % 4) as Seat;
-export const shimochaOf = (seat: Seat): Seat => ((seat + 1) % 4) as Seat;
-export const toimenOf = (seat: Seat): Seat => ((seat + 2) % 4) as Seat;
+/** seat から見た上家（ひとつ前の手番）の座席 */
+export const kamichaOf = (seat: Seat, playerCount: 3 | 4 = 4): Seat => ((seat + playerCount - 1) % playerCount) as Seat;
+/** seat から見た下家（ひとつ後の手番）の座席 */
+export const shimochaOf = (seat: Seat, playerCount: 3 | 4 = 4): Seat => ((seat + 1) % playerCount) as Seat;
+/** seat から見た対面の座席（3人打ちには対面がいない） */
+export const toimenOf = (seat: Seat, playerCount: 3 | 4 = 4): Seat | null =>
+  playerCount === 3 ? null : (((seat + 2) % 4) as Seat);
 
 export function allHandTiles(input: Pick<WinInput, 'concealed' | 'melds' | 'winningTile'>): Tile[] {
   return [...input.concealed, input.winningTile, ...input.melds.flatMap((m) => m.tiles)];

@@ -11,17 +11,19 @@ export interface MeldConfig {
   from: 'kamicha' | 'toimen' | 'shimocha';
 }
 
-export const meldFromSeat = (owner: Seat, cfg: MeldConfig): Seat | undefined => {
+export const meldFromSeat = (owner: Seat, cfg: MeldConfig, n: 3 | 4): Seat | undefined => {
   if (cfg.type === 'ankan') return undefined;
-  if (cfg.type === 'chi') return kamichaOf(owner);
-  return cfg.from === 'kamicha' ? kamichaOf(owner) : cfg.from === 'toimen' ? toimenOf(owner) : shimochaOf(owner);
+  if (cfg.type === 'chi') return kamichaOf(owner, n);
+  if (cfg.from === 'kamicha') return kamichaOf(owner, n);
+  if (cfg.from === 'shimocha') return shimochaOf(owner, n);
+  return toimenOf(owner, n) ?? undefined;
 };
 
-const RELATION = (owner: Seat, from: Seat | undefined): string => {
+const RELATION = (owner: Seat, from: Seat | undefined, n: 3 | 4): string => {
   if (from === undefined) return '';
-  if (from === kamichaOf(owner)) return '上家';
-  if (from === toimenOf(owner)) return '対面';
-  if (from === shimochaOf(owner)) return '下家';
+  if (from === kamichaOf(owner, n)) return '上家';
+  if (from === toimenOf(owner, n)) return '対面';
+  if (from === shimochaOf(owner, n)) return '下家';
   return '?';
 };
 
@@ -30,6 +32,10 @@ export function SeatEditor({
   seat,
   sd,
   names,
+  playerCount,
+  allowChi,
+  nukiEnabled,
+  onNuki,
   target,
   onTarget,
   meldCfg,
@@ -50,6 +56,11 @@ export function SeatEditor({
   seat: Seat;
   sd: SeatDraft;
   names: readonly string[];
+  playerCount: 3 | 4;
+  allowChi: boolean;
+  /** 3人打ちで北抜きを採用している */
+  nukiEnabled: boolean;
+  onNuki: (n: number) => void;
   target: EditTarget;
   onTarget: (t: EditTarget) => void;
   meldCfg: MeldConfig;
@@ -127,7 +138,7 @@ export function SeatEditor({
             options={[
               { value: 'none', label: 'なし' },
               { value: 'riichi', label: 'リーチ', disabled: hasOpen },
-              { value: 'double', label: 'Wリーチ', disabled: hasOpen },
+              { value: 'double', label: 'ダブルリーチ', disabled: hasOpen },
             ]}
           />
           <label className={`check${sd.riichi === 'none' ? ' is-disabled' : ''}`}>
@@ -150,7 +161,9 @@ export function SeatEditor({
               label="副露の種類"
               value={meldCfg.type}
               onChange={(type) => onMeldCfg({ ...meldCfg, type })}
-              options={(['chi', 'pon', 'minkan', 'kakan', 'ankan'] as MeldType[]).map((t) => ({ value: t, label: MELD_LABELS[t] }))}
+              options={(['chi', 'pon', 'minkan', 'kakan', 'ankan'] as MeldType[])
+                .filter((t) => t !== 'chi' || allowChi)
+                .map((t) => ({ value: t, label: MELD_LABELS[t] }))}
             />
             {meldCfg.type !== 'ankan' && meldCfg.type !== 'chi' && (
               <Seg
@@ -159,15 +172,15 @@ export function SeatEditor({
                 value={meldCfg.from}
                 onChange={(from) => onMeldCfg({ ...meldCfg, from })}
                 options={[
-                  { value: 'kamicha', label: `上家（${names[kamichaOf(seat)]}）` },
-                  { value: 'toimen', label: `対面（${names[toimenOf(seat)]}）` },
-                  { value: 'shimocha', label: `下家（${names[shimochaOf(seat)]}）` },
+                  { value: 'kamicha' as const, label: `上家（${names[kamichaOf(seat, playerCount)]}）` },
+                  ...(playerCount === 4 ? [{ value: 'toimen' as const, label: `対面（${names[toimenOf(seat, 4)!]}）` }] : []),
+                  { value: 'shimocha' as const, label: `下家（${names[shimochaOf(seat, playerCount)]}）` },
                 ]}
               />
             )}
             <p className="note">
               {meldCfg.type === 'chi'
-                ? `チーは上家（${names[kamichaOf(seat)]}）から。順子の一番小さい牌をタップしてください。`
+                ? `チーは上家（${names[kamichaOf(seat, playerCount)]}）から。順子の一番小さい牌をタップしてください。`
                 : `${MELD_LABELS[meldCfg.type]}する牌をタップしてください。`}
               五を含む副露は、追加後に五をタップすると赤⇔通常を切り替えられます。
             </p>
@@ -179,7 +192,7 @@ export function SeatEditor({
             <div key={i} className="meld">
               <span className="meld-tag">
                 {MELD_LABELS[m.type]}
-                {m.calledFrom !== undefined && <small>（{RELATION(seat, m.calledFrom)}）</small>}
+                {m.calledFrom !== undefined && <small>（{RELATION(seat, m.calledFrom, playerCount)}）</small>}
               </span>
               <span className="meld-tiles">
                 {m.tiles.map((t, j) => (
@@ -202,6 +215,23 @@ export function SeatEditor({
           ))}
         </div>
       </div>
+      {nukiEnabled && (
+        <div className="editor-block nuki-block">
+          <span className="block-label">北抜き（抜きドラ）</span>
+          <div className="nuki-row">
+            <button type="button" className="btn btn-small" onClick={() => onNuki(sd.nuki - 1)} disabled={sd.nuki <= 0} aria-label="抜いた北を1枚減らす">
+              −
+            </button>
+            <span className="nuki-tiles" aria-label={`抜いた北 ${sd.nuki}枚`}>
+              {sd.nuki === 0 ? <span className="muted">なし</span> : Array.from({ length: sd.nuki }, (_, i) => <TileView key={i} tile={{ kind: 30, red: false }} size="sm" />)}
+            </span>
+            <button type="button" className="btn btn-small" onClick={() => onNuki(sd.nuki + 1)} disabled={sd.nuki >= 4} aria-label="抜いた北を1枚増やす">
+              ＋
+            </button>
+          </div>
+          <p className="note">抜いた北は手牌に入れず、ここで枚数だけを入力します（1枚につき抜きドラ1翻）。</p>
+        </div>
+      )}
     </section>
   );
 }

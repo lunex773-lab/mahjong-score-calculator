@@ -70,8 +70,18 @@ export const kindOf = (suit: Suit, rank: number): TileKind => {
 
 export const YAOCHU_KINDS: readonly TileKind[] = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
 
-/** ドラ表示牌から次のドラ牌を求める（仕様書 2.3）。 */
-export function doraFromIndicator(indicator: TileKind): TileKind {
+/** 3人打ちで使わない牌（二萬〜八萬） */
+export const SANMA_EXCLUDED_KINDS: readonly TileKind[] = [1, 2, 3, 4, 5, 6, 7];
+export const isUsableKind = (kind: TileKind, playerCount: 3 | 4): boolean =>
+  isValidKind(kind) && !(playerCount === 3 && SANMA_EXCLUDED_KINDS.includes(kind));
+
+/**
+ * ドラ表示牌から次のドラ牌を求める（4人打ち仕様書 2.3）。
+ * 3人打ちの萬子は一萬と九萬しかないため、一萬→九萬、九萬→一萬とする（3人打ち仕様書 1.4）。
+ */
+export function doraFromIndicator(indicator: TileKind, playerCount: 3 | 4 = 4): TileKind {
+  if (playerCount === 3 && indicator === 0) return 8;
+  if (playerCount === 3 && indicator === 8) return 0;
   if (indicator < 27) {
     const base = Math.floor(indicator / 9) * 9;
     return base + ((indicator - base + 1) % 9);

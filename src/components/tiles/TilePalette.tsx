@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { kindOf, tileLabel, type Suit, type Tile } from '../../domain/mahjong/tile';
+import { isUsableKind, kindOf, tileLabel, type Suit, type Tile } from '../../domain/mahjong/tile';
 import { TileView } from './Tile';
 import { usePressable } from './drag';
 
@@ -12,10 +12,12 @@ const TABS: { suit: Suit; label: string }[] = [
   { suit: 'honor', label: '字牌' },
 ];
 
-function tilesOf(suit: Suit, showRed: boolean): Tile[] {
+function tilesOf(suit: Suit, showRed: boolean, playerCount: 3 | 4): Tile[] {
   if (suit === 'honor') return Array.from({ length: 7 }, (_, i) => ({ kind: 27 + i, red: false }));
   const out: Tile[] = [];
   for (let r = 1; r <= 9; r++) {
+    // 3人打ちは二萬〜八萬を使わない（入力できないようにする）
+    if (!isUsableKind(kindOf(suit, r), playerCount)) continue;
     out.push({ kind: kindOf(suit, r), red: false });
     if (r === 5 && showRed) out.push({ kind: kindOf(suit, 5), red: true });
   }
@@ -52,11 +54,13 @@ export function TilePalette({
   onPick,
   akaSuits,
   hint,
+  playerCount,
 }: {
   remaining: (t: Tile) => number;
   onPick: (t: Tile) => void;
   akaSuits: Record<'man' | 'pin' | 'sou', boolean>;
   hint: string;
+  playerCount: 3 | 4;
 }) {
   const [suit, setSuit] = useState<Suit>('man');
   return (
@@ -79,7 +83,7 @@ export function TilePalette({
         <p className="palette-hint">{hint}</p>
       </div>
       <div className="palette-grid">
-        {tilesOf(suit, suit !== 'honor' && akaSuits[suit as 'man' | 'pin' | 'sou']).map((tile) => (
+        {tilesOf(suit, suit !== 'honor' && akaSuits[suit as 'man' | 'pin' | 'sou'], playerCount).map((tile) => (
           <PaletteTile key={`${tile.kind}-${tile.red}`} tile={tile} remaining={remaining(tile)} onPick={onPick} />
         ))}
       </div>

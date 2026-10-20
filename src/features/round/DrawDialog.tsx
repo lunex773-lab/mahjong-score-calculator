@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Check, Dialog, Seg } from '../../components/common/Dialog';
-import { SEATS, type Seat } from '../../domain/mahjong/hand';
+import { seatsOf, type Seat } from '../../domain/mahjong/hand';
 import { findWaits } from '../../domain/mahjong/hand-decomposition';
 import { tileLabel, YAOCHU_KINDS } from '../../domain/mahjong/tile';
-import { ABORTIVE_LABELS, applyEvent, dealerOf, type AbortiveKind, type GameEvent, type GameState } from '../../domain/round/game';
+import { ABORTIVE_LABELS, abortiveKindsFor, applyEvent, dealerOf, type AbortiveKind, type GameEvent, type GameState } from '../../domain/round/game';
 import { riichiSeats, type HandDraft } from '../../store/types';
+import { fmtPoints } from '../../ui/format';
 
 type Kind = 'exhaustive' | AbortiveKind | 'chombo';
 
@@ -23,30 +24,29 @@ export function DrawDialog({
   const rules = game.rules;
   const names = game.players;
   const dealer = dealerOf(game);
-  const riichi = riichiSeats(draft);
+  const n = rules.game.playerCount;
+  const seatList = seatsOf(n);
+  const riichi = riichiSeats(draft, n);
 
   // 入力済みの手牌（13枚相当）から待ちを求め、テンパイの初期値と確認表示に使う
   const detected = useMemo(
     () =>
-      SEATS.map((s) => {
+      seatList.map((s) => {
         const sd = draft.seats[s];
         if (sd.concealed.length + sd.melds.length * 3 !== 13) return null;
-        return findWaits(sd.concealed, sd.melds);
+        return findWaits(sd.concealed, sd.melds, n);
       }),
-    [draft],
+    [draft, n],
   );
   const [kind, setKind] = useState<Kind>('exhaustive');
-  const [tenpai, setTenpai] = useState<Seat[]>(() => SEATS.filter((s) => (detected[s]?.length ?? 0) > 0 || riichi.includes(s)));
+  const [tenpai, setTenpai] = useState<Seat[]>(() => seatList.filter((s) => (detected[s]?.length ?? 0) > 0 || riichi.includes(s)));
   const [nagashi, setNagashi] = useState<Seat[]>([]);
   const [chomboSeat, setChomboSeat] = useState<Seat>(0);
 
+  // 人数に応じた途中流局（4人打ち: 四風子連打・四家立直・三家和、3人打ち: 三風子連打・三家立直）
   const options: { value: Kind; label: string; disabled?: boolean }[] = [
     { value: 'exhaustive', label: '荒牌流局' },
-    { value: 'nineTerminals', label: ABORTIVE_LABELS.nineTerminals, disabled: !rules.draws.nineTerminals },
-    { value: 'fourWinds', label: ABORTIVE_LABELS.fourWinds, disabled: !rules.draws.fourWinds },
-    { value: 'fourRiichi', label: ABORTIVE_LABELS.fourRiichi, disabled: !rules.draws.fourRiichi },
-    { value: 'fourKans', label: ABORTIVE_LABELS.fourKans, disabled: !rules.draws.fourKans },
-    { value: 'threeRon', label: ABORTIVE_LABELS.threeRon, disabled: !rules.draws.threeRon },
+    ...abortiveKindsFor(rules).map((k) => ({ value: k.kind, label: ABORTIVE_LABELS[k.kind], disabled: !k.enabled })),
     { value: 'chombo', label: 'チョンボ' },
   ];
 
@@ -60,20 +60,20 @@ export function DrawDialog({
   const log = preview.ok ? preview.state.logs[preview.state.logs.length - 1] : undefined;
 
   // 入力済みの手牌と申告の食い違い（形式テンパイの確認）
-  const mismatches = SEATS.flatMap((s) => {
+  const mismatches = seatList.flatMap((s) => {
     const waits = detected[s];
     if (kind !== 'exhaustive' || waits === null || waits === undefined) return [];
     const declared = tenpai.includes(s);
-    if (declared && waits.length === 0) return [`${names[s]}さんの入力済みの手牌はノーテンです`];
-    if (!declared && waits.length > 0) return [`${names[s]}さんの入力済みの手牌はテンパイです（待ち: ${waits.map((w) => tileLabel(w)).join('・')}）`];
+    if (declared && waits.length === 0) return [`${names[s]}さんの入力済みの手牌はノーテンです。`];
+    if (!declared && waits.length > 0) return [`${names[s]}さんの入力済みの手牌はテンパイです（待ち：${waits.map((w) => tileLabel(w)).join('・')}）。`];
     return [];
   });
   const nineCheck = (() => {
     if (kind !== 'nineTerminals') return null;
-    const hands = SEATS.filter((s) => draft.seats[s].concealed.length >= 13);
+    const hands = seatList.filter((s) => draft.seats[s].concealed.length >= 13);
     return hands.map((s) => {
       const kinds = new Set(draft.seats[s].concealed.filter((t) => YAOCHU_KINDS.includes(t.kind)).map((t) => t.kind));
-      return `${names[s]}さんの入力済みの手牌の么九牌: ${kinds.size}種`;
+      return `${names[s]}さんの入力済みの手牌の么九牌：${kinds.size}種`;
     });
   })();
 
@@ -105,7 +105,7 @@ export function DrawDialog({
         <section className="form-block">
           <h3>テンパイしていた人</h3>
           <div className="check-grid">
-            {SEATS.map((s) => (
+            {seatList.map((s) => (
               <Check
                 key={s}
                 label={`${names[s]}${s === dealer ? '（親）' : ''}${riichi.includes(s) ? '・リーチ' : ''}`}
@@ -123,7 +123,7 @@ export function DrawDialog({
             <>
               <h3>流し満貫</h3>
               <div className="check-grid">
-                {SEATS.map((s) => (
+                {seatList.map((s) => (
                   <Check key={s} label={names[s]!} checked={nagashi.includes(s)} onChange={() => toggle(nagashi, setNagashi, s)} />
                 ))}
               </div>
@@ -136,15 +136,22 @@ export function DrawDialog({
       {kind === 'chombo' && (
         <section className="form-block">
           <h3>チョンボした人</h3>
-          <Seg value={chomboSeat} onChange={setChomboSeat} options={SEATS.map((s) => ({ value: s, label: names[s]! }))} small />
-          <p className="note">満貫払い（親のチョンボは4000点オール、子は親へ4000点・子へ2000点）。局はやり直しになり、本場は変わりません。ノーテンリーチもチョンボとして記録します。</p>
+          <Seg value={chomboSeat} onChange={setChomboSeat} options={seatList.map((s) => ({ value: s, label: names[s]! }))} small />
+          <p className="note">
+            {n === 3
+              ? rules.sanma.tsumoPayment === 'split'
+                ? '満貫払いです（親のチョンボは各6,000点、子のチョンボは親へ5,000点・子へ3,000点）。'
+                : '満貫払いです（親のチョンボは各4,000点、子のチョンボは親へ4,000点・子へ2,000点）。'
+              : '満貫払いです（親のチョンボは4,000点オール、子のチョンボは親へ4,000点・子へ2,000点）。'}
+            局はやり直しになり、本場は変わりません。ノーテンリーチもチョンボとして記録します。
+          </p>
         </section>
       )}
 
       {kind !== 'exhaustive' && kind !== 'chombo' && (
         <p className="note">
           途中流局は親の連荘となり、本場が1本増えます。リーチ棒は供託に残ります。
-          {kind === 'fourRiichi' && ' 4人全員をリーチとして入力してください。'}
+          {(kind === 'fourRiichi' || kind === 'threeRiichi') && `${n}人全員をリーチとして入力してください。`}
         </p>
       )}
       {nineCheck?.map((m) => (
@@ -163,13 +170,13 @@ export function DrawDialog({
           ))}
         {log && (
           <ul className="yaku-list">
-            {log.transactions.length === 0 && <li>点棒の移動はありません</li>}
+            {log.transactions.length === 0 && <li>点棒の移動はありません。</li>}
             {log.transactions.map((t, i) => (
               <li key={i}>
                 <span>
                   {t.from === 'pot' ? '供託' : names[t.from]} → {t.to === 'pot' ? '供託' : names[t.to]}
                 </span>
-                <span>{t.amount.toLocaleString()}点</span>
+                <span>{fmtPoints(t.amount)}</span>
               </li>
             ))}
           </ul>
