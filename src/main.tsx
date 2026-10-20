@@ -15,6 +15,12 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
+// アプリとして使うため、ピンチ操作での画面全体の拡大を止める。
+// iPhone の Safari は viewport の user-scalable=no を無視するため、ジェスチャーイベントで止める。
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+}
+
 // オフライン動作のための Service Worker（本番ビルドのみ）
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
