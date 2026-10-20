@@ -318,7 +318,7 @@ export function TableScreen({
 
       {overviewOpen && (
         <Dialog title="卓の俯瞰（すべての牌）" onClose={onCloseOverview} wide>
-          <MahjongTable seats={seats} selected={seat} onSelect={setSeat} center={center} draft={draft} overview />
+          <MahjongTable seats={seats} selected={seat} onSelect={setSeat} center={center} draft={draft} view="flat" />
           <p className="note">卓を左右にスワイプすると回転します。各席の手牌・アガリ牌（金枠）・副露と、中央にドラ表示牌を表示しています。</p>
         </Dialog>
       )}

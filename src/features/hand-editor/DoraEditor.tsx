@@ -29,7 +29,6 @@ export function DoraEditor({
         <div key={t} className={`dora-row-edit${target === t ? ' is-active' : ''}`}>
           <button type="button" className={`target-chip${target === t ? ' on' : ''}`} onClick={() => onTarget(t)}>
             {DORA_LABELS[t]}
-            {(t === 'ura' || t === 'kanUra') && <small>（リーチ時）</small>}
           </button>
           <div className="dora-slots" onClick={() => onTarget(t)}>
             {draft.dora[t].map((tile, i) => (

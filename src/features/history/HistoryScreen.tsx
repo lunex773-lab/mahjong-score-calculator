@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Dialog } from '../../components/common/Dialog';
+import { SignedInput } from '../../components/common/SignedInput';
 import { roundLabel } from '../../domain/round/game';
 import { useStore } from '../../store/game-store';
 import { ScoreBreakdown } from '../scoring/ScoreBreakdown';
@@ -122,7 +123,7 @@ function FixDialog({ onClose }: { onClose: () => void }) {
   const [deposits, setDeposits] = useState(gameState!.deposits);
   if (!game || !gameState) return null;
   const nums = points.map(Number);
-  const valid = nums.every((n) => Number.isInteger(n));
+  const valid = points.every((p) => /^-?[0-9]+$/.test(p.trim())) && nums.every((n) => Number.isInteger(n));
   const total = nums.reduce((a, b) => a + b, 0) + deposits * game.rules.settlement.riichiStick;
   const expected = game.rules.game.startingPoints * 4;
   return (
@@ -152,7 +153,7 @@ function FixDialog({ onClose }: { onClose: () => void }) {
         {game.players.map((n, i) => (
           <label key={i} className="field">
             <span>{n}</span>
-            <input inputMode="numeric" value={points[i]} onChange={(e) => setPoints((p) => p.map((v, j) => (j === i ? e.target.value : v)))} />
+            <SignedInput value={points[i] ?? ''} label={`${n}の持ち点`} onChange={(v) => setPoints((p) => p.map((x, j) => (j === i ? v : x)))} />
           </label>
         ))}
         <label className="field">
@@ -174,11 +175,11 @@ function FixDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="field">
           <span>本場</span>
-          <input type="number" min={0} value={honba} onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))} />
+          <input type="number" inputMode="numeric" min={0} value={honba} onChange={(e) => setHonba(Math.max(0, Number(e.target.value)))} />
         </label>
         <label className="field">
           <span>供託（本）</span>
-          <input type="number" min={0} value={deposits} onChange={(e) => setDeposits(Math.max(0, Number(e.target.value)))} />
+          <input type="number" inputMode="numeric" min={0} value={deposits} onChange={(e) => setDeposits(Math.max(0, Number(e.target.value)))} />
         </label>
       </div>
       {valid && total !== expected && (

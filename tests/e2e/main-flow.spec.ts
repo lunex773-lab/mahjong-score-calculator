@@ -118,14 +118,30 @@ test('ドラッグで挿入・並べ替え、卓の外へドラッグで削除�
   await page.getByRole('button', { name: '元に戻す' }).click();
   await expect(tiles).toHaveCount(4);
 
-  // 卓を左へスワイプ → 南席が手前に
+  // 卓を左へ1席分スライド → 南席が手前に
+  await page.evaluate(() => window.scrollTo(0, 0));
   const stage = await page.locator('.table-stage').first().boundingBox();
-  const y = stage!.y + 20;
-  await page.mouse.move(stage!.x + stage!.width * 0.8, y);
-  await page.mouse.down();
-  await page.mouse.move(stage!.x + stage!.width * 0.2, y, { steps: 8 });
-  await page.mouse.up();
+  const y = stage!.y + stage!.height * 0.55;
+  const cx = stage!.x + stage!.width / 2;
+  const slide = async (dx: number) => {
+    await page.mouse.move(cx, y);
+    await page.mouse.down();
+    await page.mouse.move(cx + dx, y, { steps: 20 });
+    await page.waitForTimeout(150); // はじかずに離す
+    await page.mouse.up();
+    await page.waitForTimeout(700);
+  };
+  await slide(-110);
   await expect(page.locator('.seat-tab.on')).toContainText('南席');
+  await expect(page.locator('.seat-plate.is-front')).toContainText('B');
+  // 途中（半席未満）で離すと元の席に戻る
+  await slide(-40);
+  await expect(page.locator('.seat-tab.on')).toContainText('南席');
+  // 右へ2席分スライド → 北席
+  await slide(220);
+  await expect(page.locator('.seat-tab.on')).toContainText('北席');
+  await expect(page.locator('.seat-plate.is-front')).toContainText('D');
+  await page.locator('.seat-tab').nth(1).click();
   // 東席の入力は保持されている
   await page.locator('.seat-tab').nth(0).click();
   await expect(tiles).toHaveCount(4);
