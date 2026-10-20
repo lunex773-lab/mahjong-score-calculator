@@ -23,7 +23,10 @@ export function App() {
   const { game, state, dispatch } = useStore();
   const [view, setView] = useState<View>(game ? 'table' : 'new');
   const [overview, setOverview] = useState(false);
+  // 対局が無いときは、卓・精算・履歴の代わりに「新しい対局」を表示する
   const effective: View = !game && view !== 'settings' && view !== 'help' ? 'new' : view;
+  /** 下のタブで点灯させる項目（「新しい対局」は「卓」タブとして扱う） */
+  const activeTab: View = effective === 'new' ? 'table' : effective;
 
   return (
     <DragProvider>
@@ -68,10 +71,11 @@ export function App() {
             <button
               key={n.view}
               type="button"
-              className={effective === n.view ? 'on' : ''}
-              disabled={!game && (n.view === 'table' || n.view === 'settlement' || n.view === 'history')}
+              className={activeTab === n.view ? 'on' : ''}
+              // 「卓」は対局が無くても押せる（新しい対局の画面を開く）
+              disabled={!game && (n.view === 'settlement' || n.view === 'history')}
               onClick={() => setView(n.view)}
-              aria-current={effective === n.view ? 'page' : undefined}
+              aria-current={activeTab === n.view ? 'page' : undefined}
             >
               <span className="tab-icon">
                 <Icon name={n.icon} />

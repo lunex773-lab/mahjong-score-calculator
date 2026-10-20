@@ -213,3 +213,27 @@ test('3人打ち: 人数の選択、二萬〜八萬なし、北抜き、ツモ�
   await expect(page.locator('.check-list')).toContainText('持ち点合計 105,000点');
   await expect(page.locator('.check-list')).toContainText('収支合計 0.0');
 });
+
+test('対局を始める前に設定・使い方を開いても、卓タブから対局を始められる', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/');
+  const tab = (name: string) => page.locator('.tabbar').getByRole('button', { name });
+
+  await tab('使い方').click();
+  await expect(page.locator('.screen-title')).toHaveText('使い方');
+  await tab('設定').click();
+  await expect(page.locator('.screen-title')).toHaveText('ルール設定');
+
+  // 対局が無くても「卓」タブは押せて、新しい対局の画面に戻る
+  await expect(tab('卓')).toBeEnabled();
+  await tab('卓').click();
+  await expect(page.locator('.screen-title')).toHaveText('新しい対局');
+  await expect(tab('卓')).toHaveClass(/on/);
+
+  // 新しい対局の画面から設定へ行き、戻っても始められる
+  await page.getByRole('button', { name: 'ルールを変更する' }).click();
+  await tab('卓').click();
+  await page.getByRole('button', { name: '対局を始める' }).click();
+  await expect(page.locator('.center-round')).toHaveText('東1局 0本場');
+});
