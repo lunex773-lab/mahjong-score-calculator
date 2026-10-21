@@ -277,3 +277,21 @@ test('アガリ入力のダイアログは最前面に出て、見出しと「�
   await expect.poll(() => hit('.dialog-head h2')).toBe(true);
   await expect.poll(() => hit('.dialog-foot .btn-primary')).toBe(true);
 });
+
+test('iPhone のホーム画面アプリで高さが短く報告されても、下のタブを画面の下端に合わせる', async ({ page }) => {
+  // ステータスバーの分（47px）だけ window.innerHeight が短く報告される状態を再現する
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'standalone', { get: () => true });
+    const full = window.innerHeight + 47;
+    Object.defineProperty(window.screen, 'height', { get: () => full });
+    Object.defineProperty(window.screen, 'width', { get: () => window.innerWidth });
+  });
+  await startGame(page);
+  const r = await page.evaluate(() => ({
+    appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h'),
+    tabbarBottom: document.querySelector('.tabbar')!.getBoundingClientRect().bottom,
+    screenH: window.screen.height,
+  }));
+  expect(r.appH).toBe(`${r.screenH}px`);
+  expect(Math.round(r.tabbarBottom)).toBe(r.screenH);
+});
