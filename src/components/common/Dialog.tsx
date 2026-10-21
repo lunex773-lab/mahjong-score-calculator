@@ -1,6 +1,11 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
-/** モーダルダイアログ（Esc・背景タップで閉じる） */
+/**
+ * モーダルダイアログ（Esc・背景タップで閉じる）。
+ * 中央のスクロール領域の中に置くと、iPhone の Safari ではヘッダーや下のタブの裏に回り込み
+ * 下の「記録する」などのボタンが隠れるため、body の直下に描画する。
+ */
 export function Dialog({
   title,
   onClose,
@@ -23,7 +28,7 @@ export function Dialog({
     ref.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return (
+  return createPortal(
     <div className="dialog-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`dialog${wide ? ' is-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
         <header className="dialog-head">
@@ -35,7 +40,8 @@ export function Dialog({
         <div className="dialog-body">{children}</div>
         {footer && <footer className="dialog-foot">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
