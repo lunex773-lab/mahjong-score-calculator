@@ -258,3 +258,22 @@ test('画面全体はスクロールせず、ヘッダー・牌一覧・下の�
   expect(Math.round(pos.palette)).toBe(Math.round(pos.tabbarTop));
   expect(Math.round(pos.tabbarBottom)).toBe(page.viewportSize()!.height);
 });
+
+test('アガリ入力のダイアログは最前面に出て、見出しと「記録する」ボタンが隠れない', async ({ page }) => {
+  await startGame(page);
+  await page.getByRole('button', { name: 'アガリ（点数計算）' }).click();
+  const dialog = page.getByRole('dialog', { name: 'アガリの入力' });
+  await expect(dialog).toBeVisible();
+  // 中央のスクロール領域の外（body 直下）に描画される
+  expect(await dialog.evaluate((el) => el.closest('.app-main') === null && el.parentElement?.parentElement === document.body)).toBe(true);
+  // 見出しと「記録する」ボタンの位置に、ヘッダーや下のタブが重なっていない
+  const hit = async (selector: string) =>
+    dialog.locator(selector).evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return r.top >= 0 && r.bottom <= window.innerHeight && top !== null && el.contains(top);
+    });
+  // 下からせり上がる表示アニメーションが終わるのを待って判定する
+  await expect.poll(() => hit('.dialog-head h2')).toBe(true);
+  await expect.poll(() => hit('.dialog-foot .btn-primary')).toBe(true);
+});
